@@ -52,7 +52,7 @@ class Sender
 
     /**
      * @param string[] $recipients
-     * @return array{reply: string, server: string}
+     * @return array{reply: string, server: string, rejected: array<string, string>}
      * @throws SmtpException
      */
     public function send(Scope $scope, string $from, array $recipients, string $data): array
@@ -93,7 +93,7 @@ class Sender
 
     /**
      * @param string[] $recipients
-     * @return array{reply: string, server: string}
+     * @return array{reply: string, server: string, rejected: array<string, string>}
      * @throws SmtpException
      */
     private function sendWith(ConnectionSettings $settings, string $from, array $recipients, string $data): array
@@ -124,8 +124,9 @@ class Sender
         try {
             $reply = $client->send($from, $recipients, $data);
         } catch (SmtpException $e) {
-            if ($reused && $e->getStage() === SmtpException::STAGE_IO) {
+            if ($reused && $e->getStage() === SmtpException::STAGE_IO && !$client->wasDataSent()) {
                 // The server dropped the idle connection between our check and the send: one new attempt.
+                // Never after the message data went out: the server may have accepted it already.
                 $client->close();
                 unset($this->pool[$key]);
                 return $this->sendWith($settings, $from, $recipients, $data);
@@ -143,7 +144,7 @@ class Sender
             }
             throw $this->withTranscript($e, $client);
         }
-        return ['reply' => $reply, 'server' => $settings->describe()];
+        return ['reply' => $reply, 'server' => $settings->describe(), 'rejected' => $client->getRejectedRecipients()];
     }
 
     private function remember(string $key, Client $client): void

@@ -196,4 +196,86 @@ class ClientTest extends TestCase
             $this->assertTrue($e->isTemporary());
         }
     }
+
+    public function testNonSmtpAnswerIsHidden(): void
+    {
+        $socket = (new FakeSocket())->queue(['SSH-2.0-OpenSSH_9.6 internal-host']);
+        $client = new Client($this->settings('auto', 'none'), $socket);
+        try {
+            $client->connect();
+            $this->fail('A non-SMTP answer must fail');
+        } catch (SmtpException $e) {
+            $this->assertStringNotContainsString('OpenSSH', $e->getMessage());
+            $this->assertStringNotContainsString('OpenSSH', $client->getTranscript());
+            $this->assertStringContainsString('did not answer like an SMTP server', $e->getMessage());
+        }
+    }
+
+    public function testNonMailPortIsRefusedBeforeConnecting(): void
+    {
+        $socket = new FakeSocket();
+        $settings = new ConnectionSettings('custom', 'db.internal', 3306, 'none', 'auto', '', '', 10, true, 'shop.example.com');
+        $client = new Client($settings, $socket);
+        try {
+            $client->connect();
+            $this->fail('Port 3306 must be refused');
+        } catch (SmtpException $e) {
+            $this->assertSame(SmtpException::STAGE_CONNECT, $e->getStage());
+            $this->assertSame('', $socket->remote);
+        }
+    }
+
+    public function testSecretEchoedByServerIsMasked(): void
+    {
+        $token = 'pm-token-1234567890';
+        $socket = (new FakeSocket())->queue(['220 ready'])->queue($this->ehlo(false))
+            ->queue(['535 5.7.8 Authentication failed for ' . $token]);
+        $client = new Client($this->settings('auto', 'none', $token, $token), $socket);
+        try {
+            $client->connect();
+            $this->fail('Sign-in must fail');
+        } catch (SmtpException $e) {
+            $this->assertStringNotContainsString($token, $e->getMessage());
+            $this->assertStringNotContainsString($token, $e->getReplyText());
+            $this->assertStringNotContainsString($token, $client->getTranscript());
+        }
+    }
+
+    public function testPermanentlyRefusedRecipientIsLeftOut(): void
+    {
+        $socket = (new FakeSocket())->queue(['220 ready'])->queue($this->ehlo(false))->queue(['235 ok'])
+            ->queue(['250 sender ok', '550 5.1.1 no such user', '250 ok', '354 go', '250 queued as X1']);
+        $client = new Client($this->settings('auto', 'none'), $socket);
+        $client->connect();
+        $reply = $client->send('shop@example.com', ['typo@example.con', 'copy@example.com'], "Subject: x\r\n\r\nbody\r\n");
+        $this->assertSame('queued as X1', $reply);
+        $this->assertSame(['typo@example.con' => '5.1.1 no such user'], $client->getRejectedRecipients());
+        $this->assertTrue($client->wasDataSent());
+    }
+
+    public function testAllRecipientsRefusedFails(): void
+    {
+        $socket = (new FakeSocket())->queue(['220 ready'])->queue($this->ehlo(false))->queue(['235 ok'])
+            ->queue(['250 sender ok', '550 5.1.1 no such user']);
+        $client = new Client($this->settings('auto', 'none'), $socket);
+        $client->connect();
+        try {
+            $client->send('shop@example.com', ['typo@example.con'], "Subject: x\r\n\r\nbody\r\n");
+            $this->fail('Must fail');
+        } catch (SmtpException $e) {
+            $this->assertSame(550, $e->getReplyCode());
+            $this->assertFalse($client->wasDataSent());
+            $this->assertSame([], $client->getRejectedRecipients());
+        }
+    }
+
+    public function testTemporaryRecipientRefusalFailsTheWholeEmail(): void
+    {
+        $socket = (new FakeSocket())->queue(['220 ready'])->queue($this->ehlo(false))->queue(['235 ok'])
+            ->queue(['250 sender ok', '250 ok', '451 4.3.0 try later']);
+        $client = new Client($this->settings('auto', 'none'), $socket);
+        $client->connect();
+        $this->expectException(SmtpException::class);
+        $client->send('shop@example.com', ['a@example.com', 'b@example.com'], "Subject: x\r\n\r\nbody\r\n");
+    }
 }

@@ -24,6 +24,15 @@ class ConnectionSettings
     public const AUTH_CRAM_MD5 = 'cram-md5';
     public const AUTH_XOAUTH2 = 'xoauth2';
 
+    /**
+     * Well-known ports of services that are never SMTP servers (SSH, web, mailbox access, databases, caches,
+     * search, queues). Refused, so the connection check cannot be used to probe them.
+     */
+    private const NON_MAIL_PORTS = [
+        22, 23, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995, 1433, 1521, 2049, 2375, 2376, 3306, 3389,
+        5432, 5672, 5984, 6379, 6380, 8080, 8443, 9000, 9200, 9300, 11211, 15672, 27017,
+    ];
+
     public function __construct(
         public readonly string $provider,
         public readonly string $host,
@@ -66,6 +75,11 @@ class ConnectionSettings
             $this->host, (string)$this->port, $this->encryption, $this->authMethod, $this->username,
             $this->password, $this->verifyTls ? '1' : '0', $this->heloName,
         ]));
+    }
+
+    public static function isNonMailPort(int $port): bool
+    {
+        return in_array($port, self::NON_MAIL_PORTS, true);
     }
 
     public function describe(): string

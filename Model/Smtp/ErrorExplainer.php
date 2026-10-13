@@ -108,12 +108,24 @@ class ErrorExplainer
                     (string)__('A firewall or your hosting provider probably blocks outgoing connections on port %1. Try port 587 or 2525, or ask your host to allow it.', $port),
                 ];
             }
+            if (str_contains($text, 'another kind of service')) {
+                return [
+                    (string)__('Port %1 is not an email port.', $port),
+                    (string)__('Use the SMTP port of your provider: usually 587 (STARTTLS) or 465 (SSL/TLS), or 25 or 2525.'),
+                ];
+            }
             if (str_contains($text, 'no smtp host')) {
                 return [(string)__('No SMTP host is set.'), (string)__('Choose a provider or enter the host of your SMTP server.')];
             }
             return [
                 (string)__('Could not connect to %1.', $where),
                 (string)__('Check the host, port and encryption type, and that this server may make outgoing connections.'),
+            ];
+        }
+        if (str_contains($text, 'not answer like an smtp server')) {
+            return [
+                (string)__('%1 is not an SMTP server.', $where),
+                (string)__('Check the host and port with your provider (usually 587 with STARTTLS or 465 with SSL/TLS).'),
             ];
         }
         if (($stage === SmtpException::STAGE_GREETING || $stage === SmtpException::STAGE_IO)

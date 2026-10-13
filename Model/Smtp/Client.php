@@ -27,6 +27,10 @@ class Client
     private bool $encrypted = false;
     private string $authMechanism = '';
     private int $messageCount = 0;
+    /** True once the message data of the current send() went to the server (a retry could deliver it twice). */
+    private bool $dataSent = false;
+    /** @var array<string, string> recipient => server reply, for recipients the server refused permanently */
+    private array $rejected = [];
 
     public function __construct(
         private readonly ConnectionSettings $settings,
@@ -47,6 +51,12 @@ class Client
         }
         if ($settings->port < 1 || $settings->port > 65535) {
             throw new SmtpException('The port must be between 1 and 65535', SmtpException::STAGE_CONNECT);
+        }
+        if (ConnectionSettings::isNonMailPort($settings->port)) {
+            throw new SmtpException(
+                sprintf('Port %d belongs to another kind of service, not to an SMTP server', $settings->port),
+                SmtpException::STAGE_CONNECT
+            );
         }
         $implicitTls = $settings->encryption === ConnectionSettings::ENCRYPTION_SSL;
         $remote = ($implicitTls ? 'ssl://' : 'tcp://') . $settings->host . ':' . $settings->port;
@@ -117,14 +127,35 @@ class Client
             $params .= ' SMTPUTF8';
         }
 
+        $this->dataSent = false;
+        $this->rejected = [];
         $this->command('MAIL FROM:<' . self::cleanAddress($from) . '>' . $params);
         $this->expect([250], SmtpException::STAGE_MAIL_FROM);
+        $accepted = 0;
+        $lastRejection = null;
         foreach ($recipients as $recipient) {
             $this->command('RCPT TO:<' . self::cleanAddress($recipient) . '>');
-            $this->expect([250, 251, 252], SmtpException::STAGE_RCPT);
+            try {
+                $this->expect([250, 251, 252], SmtpException::STAGE_RCPT);
+                $accepted++;
+            } catch (SmtpException $e) {
+                // A permanently refused address (5xx, for example a typo) must not stop the email for the
+                // other recipients, such as the store's own Bcc copy. Temporary refusals fail the whole email,
+                // so a retry never sends it twice to the recipients that were accepted.
+                if ($e->getReplyCode() < 500 || $e->getReplyCode() > 599) {
+                    throw $e;
+                }
+                $this->rejected[$recipient] = self::firstLine($e->getReplyText());
+                $lastRejection = $e;
+            }
+        }
+        if ($accepted === 0 && $lastRejection !== null) {
+            $this->rejected = [];
+            throw $lastRejection;
         }
         $this->command('DATA');
         $this->expect([354], SmtpException::STAGE_DATA);
+        $this->dataSent = true;
         $this->socket->write($data . ".\r\n");
         $this->log('C: [message, ' . self::formatBytes($size) . ']');
         $this->log('C: .');
@@ -198,6 +229,24 @@ class Client
     public function getMessageCount(): int
     {
         return $this->messageCount;
+    }
+
+    /**
+     * Whether the message data of the last send() reached the server, even if no final reply came back.
+     */
+    public function wasDataSent(): bool
+    {
+        return $this->dataSent;
+    }
+
+    /**
+     * Recipients of the last send() that the server refused permanently while accepting the others.
+     *
+     * @return array<string, string> address => server reply
+     */
+    public function getRejectedRecipients(): array
+    {
+        return $this->rejected;
     }
 
     /**
@@ -383,10 +432,15 @@ class Client
                 $this->connected = false;
                 throw new SmtpException('The server closed the connection', SmtpException::STAGE_IO);
             }
-            $this->log('S: ' . self::truncate($line, 500));
-            if (strlen($line) < 3 || !ctype_digit(substr($line, 0, 3))) {
-                throw new SmtpException('Unexpected answer from the server: ' . self::truncate($line, 200), SmtpException::STAGE_IO);
+            if (strlen($line) < 3 || !ctype_digit(substr($line, 0, 3))
+                || (strlen($line) > 3 && $line[3] !== ' ' && $line[3] !== '-')) {
+                // Not an SMTP reply (for example a database or SSH service on that port): its content is not
+                // shown, so the connection check cannot be used to read other services on the network.
+                $this->log('S: [an answer that is not SMTP, hidden]');
+                throw new SmtpException('The server did not answer like an SMTP server', SmtpException::STAGE_GREETING);
             }
+            $line = $this->maskSecrets($line);
+            $this->log('S: ' . self::truncate($line, 500));
             $code = (int)substr($line, 0, 3);
             $lines[] = (string)substr($line, 4);
             if (($line[3] ?? ' ') !== '-') {
@@ -407,6 +461,18 @@ class Client
             $data .= "\r\n";
         }
         return $data;
+    }
+
+    /**
+     * Hides the password or token if a server repeats it in a reply.
+     */
+    private function maskSecrets(string $line): string
+    {
+        $secret = $this->settings->password;
+        if (strlen($secret) < 6) {
+            return $line;
+        }
+        return str_replace([$secret, base64_encode($secret)], '[hidden]', $line);
     }
 
     private function log(string $line): void
