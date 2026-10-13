@@ -56,8 +56,9 @@ address if the customer gave a wrong one.
 
 With "Keep Email Content" on (the default), the full email is kept compressed in the database so you can view and
 resend it. Emails can contain personal data and links such as password resets, so the log is cleaned after 30 days by
-default. You can shorten that, or switch "Keep Email Content" off; queued and retried emails are always kept until they
-are sent.
+default. You can shorten that, keep the content for fewer days than the log entry ("Keep Email Content For"), or
+switch "Keep Email Content" off (content already stored is then deleted at the next daily clean-up); queued and
+retried emails are always kept until they are sent.
 
 **My emails go to spam. Can the module help?**
 

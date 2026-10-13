@@ -61,7 +61,7 @@ send the German store's emails from a different account.
 | Email Provider | A preset fixes the server and security. "Custom SMTP server" leaves everything open. |
 | SES Region / Mailgun Region / Zoho Data Centre | Shown for these providers; choose where your account is. |
 | SMTP Host | Custom server only, for example `smtp.example.com`. Pasted `https://` and ports are removed. |
-| Port | Empty = the usual port (587, Cloudflare 465). Port 465 and 2465 use SSL/TLS, all others STARTTLS. Use 2525 if your host blocks 587 (SendGrid, Mailgun, Brevo, Postmark). |
+| Port | Empty = the usual port (587, Cloudflare 465). Port 465 and 2465 use SSL/TLS, all others STARTTLS. Use 2525 if your host blocks 587 (SendGrid, Mailgun, Brevo, Postmark). Ports of other services (for example 22, 80, 443, 3306, 6379) are refused. |
 | Security | Custom server: STARTTLS, SSL/TLS or None. Presets always encrypt. |
 | Sign-in Method | Custom server: Automatic (best method the server offers), PLAIN, LOGIN, CRAM-MD5 or None. |
 | Verify TLS Certificate | Custom server: keep Yes. Turn off only for a relay on your own network with a self-signed certificate. |
@@ -186,8 +186,13 @@ to another address helps when a customer gave a wrong address. In the grid, the 
 selected emails for cron; **Delete** removes entries.
 
 Log settings (Default Config only): **Log Emails**, **Keep Email Content** (needed for preview and resend; emails can
-contain personal data and links such as password resets, so keep the retention short) and **Keep Log Entries For
-(Days)** (default 30, 0 keeps everything; cleaned daily).
+contain personal data and links such as password resets, so keep the retention short), **Keep Log Entries For
+(Days)** (default 30, 0 keeps everything; cleaned daily) and the optional **Keep Email Content For (Days)**, which
+deletes the body and attachments sooner than the log entry (for example after 7 days). When you switch "Keep Email
+Content" off, content already stored is deleted at the next daily clean-up.
+
+If the server permanently refuses one recipient (for example a mistyped address) while accepting the others, the email
+still goes to the others and the log notes the refused address.
 
 ## 10. Test and Diagnostics
 

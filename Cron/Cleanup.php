@@ -20,5 +20,6 @@ class Cleanup
     public function execute(): void
     {
         $this->cleaner->clean();
+        $this->cleaner->cleanContent();
     }
 }

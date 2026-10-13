@@ -41,6 +41,9 @@ class CleanCommand extends Command
         }
         $deleted = $this->cleaner->clean($days !== null ? (int)$days : null);
         $output->writeln(sprintf('Deleted %d log entries.', $deleted));
+        if ($days === null) {
+            $output->writeln(sprintf('Deleted the stored content of %d emails.', $this->cleaner->cleanContent()));
+        }
         return Command::SUCCESS;
     }
 }

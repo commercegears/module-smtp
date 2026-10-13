@@ -24,6 +24,10 @@ log with resend, retries of failed emails, a staging safety switch and plain-lan
   detail page with safe HTML preview, text version, headers, attachment list, delivery notes and SMTP transcript.
 - **Resend** one email now (same recipients or another address, with a new Message-ID) or many at once (queued).
 - **Retries**: failed emails are kept and retried by cron after 5, 15, 60 and 240 minutes (configurable attempts).
+  An address the server refuses permanently (for example a typo) is left out and noted; the other recipients, such as
+  the store's own Bcc copy, still get the email.
+- **Privacy**: email content is kept only as long as needed (own optional retention, deleted when "Keep Email
+  Content" is switched off); the connection check refuses ports of other services and never shows their answers.
 - **Background sending** (optional): emails are queued and sent by cron, so checkout never waits for the SMTP server.
 - **Delivery and staging**: send everything to test addresses (with an optional subject prefix), or send nothing and
   only log; "Always Deliver To" addresses or domains; **staging safety lock**: on any domain other than the live one,
@@ -49,7 +53,7 @@ test buttons, OAuth connect).
 bin/magento commercegears:smtp:test --to=you@example.com [--store=1|--website=1] [--transcript]
 bin/magento commercegears:smtp:test --check-only [--store=1]
 bin/magento commercegears:smtp:queue [--limit=200]     # send queued emails and due retries now
-bin/magento commercegears:smtp:clean [--days=30]       # delete old log entries
+bin/magento commercegears:smtp:clean [--days=30]       # delete old log entries and content no longer kept
 bin/magento commercegears:smtp:dns [domain] [--selector=s1] [--store=1]
 ```
 
@@ -61,7 +65,9 @@ Cron jobs: `commercegears_smtp_queue` (every minute: queue and retries, with a l
 A plugin on `Magento\Framework\Mail\TransportInterface::sendMessage()` takes over when the module is on for the
 email's store view. The module has its own small SMTP client that works on the raw MIME message, so Magento 2.4.6 and
 2.4.7 (Laminas Mail) and 2.4.8+ (Symfony Mailer) behave the same; Bcc recipients and attachments are kept. When the
-module is off, Magento's own transport sends the email unchanged. A second plugin on the TransportBuilder records the
+module is off, Magento's own transport sends the email unchanged. If the module itself hits an unexpected problem
+(not an SMTP error), Magento's own transport sends the email, unless test addresses, log only, the staging lock or the
+blocklist apply: then the email is not sent and Magento gets the error. A second plugin on the TransportBuilder records the
 template identifier and store view of each email. Delivery rules are applied at send time, so queued, retried and
 resent emails follow the settings that are in force then.
 

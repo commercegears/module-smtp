@@ -52,6 +52,7 @@
                 </field>
                 <field id="port" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Port</label>
+                    <backend_model>CommerceGears\Smtp\Model\Config\Backend\Port</backend_model>
                     <validate>validate-digits validate-digits-range digits-range-1-65535</validate>
                     <comment>Leave empty for the usual port: 587 (STARTTLS), Cloudflare 465. Use 465 for SSL/TLS, or 2525 if your host blocks 587 (SendGrid, Mailgun, Brevo, Postmark).</comment>
                 </field>
@@ -188,7 +189,7 @@
                 <field id="keep_content" translate="label comment" type="select" sortOrder="20" showInDefault="1" canRestore="1">
                     <label>Keep Email Content</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>Needed to view and resend emails. The content can include personal data and links such as password resets, so keep the retention short. Queued and retried emails are always kept until they are sent.</comment>
+                    <comment>Needed to view and resend emails. The content can include personal data and links such as password resets, so keep the retention short. Queued and retried emails are always kept until they are sent. When you switch it off, content already stored is deleted at the next daily clean-up.</comment>
                     <depends><field id="enabled">1</field></depends>
                 </field>
                 <field id="retention_days" translate="label comment" type="text" sortOrder="30" showInDefault="1" canRestore="1">
@@ -196,6 +197,15 @@
                     <validate>required-entry validate-digits validate-digits-range digits-range-0-3650</validate>
                     <comment>Default: 30. Older entries and their content are deleted daily; 0 keeps everything.</comment>
                     <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="content_retention_days" translate="label comment" type="text" sortOrder="40" showInDefault="1">
+                    <label>Keep Email Content For (Days)</label>
+                    <validate>validate-digits validate-digits-range digits-range-1-3650</validate>
+                    <comment>Optional. Deletes the content (body, attachments) of sent emails sooner than the log entry, for example after 7 days, so personal data and links are not kept longer than needed. Empty: the same as the log entries.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                        <field id="keep_content">1</field>
+                    </depends>
                 </field>
             </group>
             <group id="diagnostics" translate="label comment" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
