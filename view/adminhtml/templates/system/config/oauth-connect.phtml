@@ -1,0 +1,46 @@
+<?php
+/**
+ * @var \CommerceGears\Smtp\Block\Adminhtml\System\Config\OAuthConnect $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$status = $block->getStatus();
+?>
+<div class="commercegears-smtp-oauth" id="commercegears-smtp-oauth">
+    <?php if ($block->isAppOnly()): ?>
+        <p class="commercegears-smtp-oauth-state"><?= $escaper->escapeHtml(__('App-only sign-in does not need a connected account. Save, then use "Check Connection" below.')) ?></p>
+    <?php elseif ($status['connected']): ?>
+        <p class="commercegears-smtp-oauth-state <?= $status['error'] !== '' || !$status['matches'] ? 'is-error' : 'is-ok' ?>">
+            <strong><?= $escaper->escapeHtml($status['error'] !== '' ? __('Sign-in failed') : (!$status['matches'] ? __('Reconnect needed') : __('Connected'))) ?></strong>:
+            <?= $escaper->escapeHtml($status['account']) ?>
+            <?php if ($status['when'] !== ''): ?>
+                <span class="commercegears-smtp-muted">(<?= $escaper->escapeHtml(__('since %1', $status['when'])) ?>)</span>
+            <?php endif; ?>
+            <?php if ($status['inherited'] !== ''): ?>
+                <br><span class="commercegears-smtp-muted"><?= $escaper->escapeHtml($status['inherited']) ?></span>
+            <?php endif; ?>
+        </p>
+        <?php if ($status['error'] !== ''): ?>
+            <p class="commercegears-smtp-oauth-error"><?= $escaper->escapeHtml($status['error']) ?></p>
+        <?php elseif (!$status['matches']): ?>
+            <p class="commercegears-smtp-oauth-error"><?= $escaper->escapeHtml(__('The client ID or username changed since the account was connected. Click Connect Account again.')) ?></p>
+        <?php endif; ?>
+    <?php else: ?>
+        <p class="commercegears-smtp-oauth-state"><?= $escaper->escapeHtml(__('Not connected yet.')) ?></p>
+    <?php endif; ?>
+    <?php if (!$block->isAppOnly()): ?>
+        <div class="commercegears-smtp-actions">
+            <a class="action-default primary" href="<?= $escaper->escapeUrl($block->getConnectUrl()) ?>"><?= $escaper->escapeHtml($status['connected'] ? __('Reconnect Account') : __('Connect Account')) ?></a>
+            <?php if ($status['connected'] && $status['inherited'] === ''): ?>
+                <button type="button" class="action-default" data-cg-smtp-disconnect="<?= $escaper->escapeHtmlAttr($block->getDisconnectUrl()) ?>"
+                        data-scope="<?= $escaper->escapeHtmlAttr(json_encode($block->getScopeParams(), JSON_FORCE_OBJECT)) ?>"
+                        data-confirm="<?= $escaper->escapeHtmlAttr(__('Disconnect this account? Emails cannot be sent through it until you connect again.')) ?>">
+                    <?= $escaper->escapeHtml(__('Disconnect')) ?>
+                </button>
+            <?php endif; ?>
+        </div>
+        <p class="note"><span><?= $escaper->escapeHtml(__('Save the client ID, secret and username first. You are sent to the provider to sign in and come back here.')) ?></span></p>
+    <?php endif; ?>
+</div>
+<script type="text/x-magento-init">
+{"#commercegears-smtp-oauth": {"CommerceGears_Smtp/js/oauth": {}}}
+</script>

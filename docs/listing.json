@@ -1,0 +1,117 @@
+{
+    "tagline": "Send every Magento email through Google Workspace, Microsoft 365, Amazon SES or any SMTP service, with OAuth 2.0, an email log, automatic retries and plain-language diagnostics.",
+    "key_features": [
+        "Presets for 10 providers plus any SMTP server",
+        "OAuth 2.0 for Google and Microsoft 365, including app-only",
+        "Send Test Email and Check Connection with readable errors",
+        "Email log with search, safe preview and resend",
+        "Automatic retries and optional background sending",
+        "Test addresses, log-only mode and a staging safety lock",
+        "DNS check for SPF, DKIM and DMARC",
+        "Settings per website and store view"
+    ],
+    "benefits": [
+        {
+            "icon": "shield",
+            "title": "Ready for OAuth",
+            "text": "Microsoft 365 and Google expect OAuth instead of passwords. Connect once, or use Microsoft app-only sign-in that never needs reconnecting."
+        },
+        {
+            "icon": "clock",
+            "title": "No lost emails",
+            "text": "When the server is down or refuses a message, the email is kept and sent again later, and you can see and resend any email from the log."
+        },
+        {
+            "icon": "bolt",
+            "title": "Problems explained",
+            "text": "Instead of \"Unable to send mail\", you read what went wrong and what to change: app password needed, blocked port, sender not allowed and more."
+        }
+    ],
+    "showcase": [
+        {
+            "label": "Settings",
+            "title": "Pick a provider, enter the key",
+            "text": "A preset fills in the server and security, and notes explain where to find the right password or API key. Every setting works per store view.",
+            "image": "docs/images/admin-settings.png"
+        },
+        {
+            "label": "OAuth 2.0",
+            "title": "Microsoft 365 and Google without passwords",
+            "text": "Copy the redirect URI, enter the client ID and secret, and click Connect Account. Microsoft 365 also works app-only, with no sign-in at all.",
+            "image": "docs/images/admin-microsoft-oauth.png"
+        },
+        {
+            "label": "Test",
+            "title": "Test before you switch it on",
+            "text": "Send a test email or just check the connection. You see the result in plain words and the SMTP conversation with passwords hidden.",
+            "image": "docs/images/admin-test-email.png"
+        },
+        {
+            "label": "Email Log",
+            "title": "Every email, searchable",
+            "text": "Status, email type, store view and the reason for any failure, with counts of the last 24 hours, filters and mass resend.",
+            "image": "docs/images/admin-email-log.png"
+        },
+        {
+            "label": "Email details",
+            "title": "See it and send it again",
+            "text": "A safe preview of the email, its attachments and headers. Send it again to the same recipients or to a corrected address.",
+            "image": "docs/images/admin-email-view.png"
+        },
+        {
+            "label": "DNS check",
+            "title": "Find out why emails land in spam",
+            "text": "SPF, DKIM, DMARC and MX of your sender domain, checked against your provider and explained in plain words.",
+            "image": "docs/images/admin-dns-check.png"
+        }
+    ],
+    "feature_groups": [
+        {
+            "title": "Sending",
+            "items": [
+                "Gmail, Google Workspace, Microsoft 365, Amazon SES, SendGrid, Mailgun, Brevo, Postmark, Mailjet, Zoho Mail, Cloudflare",
+                "Custom servers with STARTTLS, SSL/TLS, PLAIN, LOGIN or CRAM-MD5",
+                "OAuth 2.0 (XOAUTH2) with PKCE; Microsoft 365 app-only",
+                "Send all emails from one address with Reply-To",
+                "Same behaviour on Magento 2.4.6 to 2.4.9, attachments and Bcc kept"
+            ]
+        },
+        {
+            "title": "Reliability",
+            "items": [
+                "Retries after 5, 15, 60 and 240 minutes",
+                "Optional background sending by cron",
+                "Admin notice when emails failed",
+                "Readable explanations for common provider errors"
+            ]
+        },
+        {
+            "title": "Log and resend",
+            "items": [
+                "Search by subject, sender or recipient; filter by status, type, store view and date",
+                "Safe HTML preview, text version, headers and attachments",
+                "Resend to the same or another address, single or mass",
+                "Configurable retention with daily clean-up"
+            ]
+        },
+        {
+            "title": "Staging and diagnostics",
+            "items": [
+                "Send everything to test addresses or only log",
+                "Staging safety lock based on the live domain",
+                "Always-deliver list and Never Send To blocklist",
+                "Send Test Email, Check Connection and DNS check, also as CLI commands"
+            ]
+        }
+    ],
+    "works_well_with": [
+        {
+            "package": "commercegears/module-cron-manager",
+            "text": "Shows whether the email queue and retry job runs, and warns when cron stops."
+        },
+        {
+            "package": "commercegears/module-admin-activity-log",
+            "text": "Records who changed the SMTP settings and when."
+        }
+    ]
+}

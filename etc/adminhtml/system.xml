@@ -1,0 +1,211 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="commercegears_smtp" translate="label" sortOrder="45" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>SMTP</label>
+            <tab>commercegears</tab>
+            <resource>CommerceGears_Smtp::config</resource>
+            <group id="general" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <attribute type="expanded">1</attribute>
+                <label>General</label>
+                <field id="notices" translate="label" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <frontend_model>CommerceGears\Smtp\Block\Adminhtml\System\Config\Notices</frontend_model>
+                </field>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>When on, all store emails of this scope are sent through the SMTP server below and written to the email log. When off, Magento sends emails as before. Use "Send Test Email" below before you switch it on.</comment>
+                </field>
+            </group>
+            <group id="connection" translate="label" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <attribute type="expanded">1</attribute>
+                <label>SMTP Server</label>
+                <field id="provider" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Email Provider</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\Provider</source_model>
+                    <comment>A provider fills in the server, port and security for you. Choose "Custom SMTP server" for anything else.</comment>
+                </field>
+                <field id="provider_help" translate="label" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <frontend_model>CommerceGears\Smtp\Block\Adminhtml\System\Config\ProviderHelp</frontend_model>
+                </field>
+                <field id="region_ses" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>SES Region</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\Region\Ses</source_model>
+                    <depends><field id="provider">ses</field></depends>
+                </field>
+                <field id="region_mailgun" translate="label" type="select" sortOrder="21" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Mailgun Region</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\Region\Mailgun</source_model>
+                    <depends><field id="provider">mailgun</field></depends>
+                </field>
+                <field id="region_zoho" translate="label" type="select" sortOrder="22" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Zoho Data Centre</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\Region\Zoho</source_model>
+                    <depends><field id="provider">zoho</field></depends>
+                </field>
+                <field id="host" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>SMTP Host</label>
+                    <backend_model>CommerceGears\Smtp\Model\Config\Backend\Host</backend_model>
+                    <comment>For example smtp.example.com (no https://).</comment>
+                    <depends><field id="provider">custom</field></depends>
+                </field>
+                <field id="port" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Port</label>
+                    <validate>validate-digits validate-digits-range digits-range-1-65535</validate>
+                    <comment>Leave empty for the usual port: 587 (STARTTLS), Cloudflare 465. Use 465 for SSL/TLS, or 2525 if your host blocks 587 (SendGrid, Mailgun, Brevo, Postmark).</comment>
+                </field>
+                <field id="encryption" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Security</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\Encryption</source_model>
+                    <depends><field id="provider">custom</field></depends>
+                </field>
+                <field id="auth_method" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Sign-in Method</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\AuthMethod</source_model>
+                    <comment>Automatic picks the best method the server offers.</comment>
+                    <depends><field id="provider">custom</field></depends>
+                </field>
+                <field id="verify_tls" translate="label comment" type="select" sortOrder="65" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Verify TLS Certificate</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Keep this on. Turn it off only for a server on your own network with a self-signed certificate.</comment>
+                    <depends><field id="provider">custom</field></depends>
+                </field>
+                <field id="oauth_flow" translate="label comment" type="select" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>OAuth Sign-in Type</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\OAuthFlow</source_model>
+                    <comment>App-only needs no browser sign-in and no reconnecting, but an Exchange administrator must give the app access to the mailbox (see the user guide).</comment>
+                    <depends><field id="provider">microsoft_oauth</field></depends>
+                </field>
+                <field id="username" translate="label comment" type="text" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Username</label>
+                    <comment>Usually the full email address of the account, or the SMTP login your provider shows. For OAuth: the mailbox that sends the emails.</comment>
+                    <depends><field id="provider" separator="," negative="1">sendgrid,postmark,cloudflare</field></depends>
+                </field>
+                <field id="password" translate="label comment" type="obscure" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Password, App Password or API Key</label>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <comment>Stored encrypted. See the provider notes above for which secret to use.</comment>
+                    <depends><field id="provider" separator="," negative="1">google_oauth,microsoft_oauth</field></depends>
+                </field>
+                <field id="oauth_client_id" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>OAuth Client ID</label>
+                    <depends><field id="provider" separator=",">google_oauth,microsoft_oauth</field></depends>
+                </field>
+                <field id="oauth_client_secret" translate="label comment" type="obscure" sortOrder="110" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>OAuth Client Secret</label>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <comment>Stored encrypted. Microsoft: the secret's value, not its ID.</comment>
+                    <depends><field id="provider" separator=",">google_oauth,microsoft_oauth</field></depends>
+                </field>
+                <field id="oauth_tenant" translate="label comment" type="text" sortOrder="120" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Microsoft Tenant ID</label>
+                    <backend_model>CommerceGears\Smtp\Model\Config\Backend\Tenant</backend_model>
+                    <comment>Directory (tenant) ID or domain from the app's overview page. Required for app-only; leave empty to allow any account when signing in.</comment>
+                    <depends><field id="provider">microsoft_oauth</field></depends>
+                </field>
+                <field id="oauth_redirect_uri" translate="label" sortOrder="130" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Redirect URI</label>
+                    <frontend_model>CommerceGears\Smtp\Block\Adminhtml\System\Config\RedirectUri</frontend_model>
+                    <depends><field id="provider" separator=",">google_oauth,microsoft_oauth</field></depends>
+                </field>
+                <field id="oauth_connect" translate="label" sortOrder="140" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Connected Account</label>
+                    <frontend_model>CommerceGears\Smtp\Block\Adminhtml\System\Config\OAuthConnect</frontend_model>
+                    <depends><field id="provider" separator=",">google_oauth,microsoft_oauth</field></depends>
+                </field>
+                <field id="timeout" translate="label comment" type="text" sortOrder="150" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Connection Timeout (Seconds)</label>
+                    <validate>validate-digits validate-digits-range digits-range-5-120</validate>
+                    <comment>Default: 20.</comment>
+                </field>
+            </group>
+            <group id="sender" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Sender</label>
+                <field id="from_email" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Send All Emails From</label>
+                    <validate>validate-email</validate>
+                    <comment><![CDATA[Optional. Use it when your SMTP account may only send from one address (Gmail, Microsoft 365, verified senders). Emails then come from this address with the store's sender name, and replies go to the original store address. The envelope sender (Return-Path) follows Magento's own setting in Advanced &gt; System &gt; Mail Sending Settings.]]></comment>
+                </field>
+            </group>
+            <group id="delivery" translate="label" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Delivery and Staging</label>
+                <field id="mode" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Delivery</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\DeliveryMode</source_model>
+                    <comment>For development and staging copies: send everything to your test addresses, or send nothing and only log. Recipients under "Always Deliver To" still get their emails.</comment>
+                </field>
+                <field id="test_recipients" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Test Addresses</label>
+                    <backend_model>CommerceGears\Smtp\Model\Config\Backend\EmailList</backend_model>
+                    <comment>One or more addresses, separated by commas. Used by "Send everything to the test addresses" and by the staging safety lock.</comment>
+                </field>
+                <field id="subject_prefix" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Subject Prefix for Test Emails</label>
+                    <comment>Optional, for example [STAGING]. Added to emails that are sent to the test addresses instead.</comment>
+                </field>
+                <field id="allowed_recipients" translate="label comment" type="textarea" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Always Deliver To</label>
+                    <comment><![CDATA[Addresses or domains that get their own emails even in the test modes, for example <code>@yourcompany.com</code> or <code>qa@example.com</code>. One per line or separated by commas.]]></comment>
+                </field>
+                <field id="live_host" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Live Store Domain (Staging Safety Lock)</label>
+                    <backend_model>CommerceGears\Smtp\Model\Config\Backend\HostList</backend_model>
+                    <comment><![CDATA[Optional, for example <code>www.example.com</code>. If the store runs on any other domain (a staging or local copy of the live database), emails go to the test addresses, or are only logged when there are none. Real customers never get emails from a copy.]]></comment>
+                </field>
+                <field id="blocked_recipients" translate="label comment" type="textarea" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Never Send To</label>
+                    <comment><![CDATA[Addresses, domains or patterns that never get emails, for example <code>@example.com</code>, <code>*@test.*</code> or <code>noreply@*</code>. These recipients are left out and noted in the log.]]></comment>
+                </field>
+            </group>
+            <group id="queue" translate="label" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Queue and Retries</label>
+                <field id="sending" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Send Emails</label>
+                    <source_model>CommerceGears\Smtp\Model\Source\SendingMode</source_model>
+                    <comment>In the background: pages such as checkout do not wait for a slow SMTP server. Needs Magento cron.</comment>
+                </field>
+                <field id="retry" translate="label comment" type="select" sortOrder="20" showInDefault="1" canRestore="1">
+                    <label>Retry Failed Emails</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>When sending fails (server down, temporary block, wrong password), the email is kept and sent again by cron after 5, 15, 60 and 240 minutes, instead of being lost. Needs Magento cron.</comment>
+                </field>
+                <field id="max_attempts" translate="label comment" type="text" sortOrder="30" showInDefault="1" canRestore="1">
+                    <label>Attempts per Email</label>
+                    <validate>validate-digits validate-digits-range digits-range-2-10</validate>
+                    <comment>Including the first try. Default: 4.</comment>
+                    <depends><field id="retry">1</field></depends>
+                </field>
+            </group>
+            <group id="log" translate="label" sortOrder="60" showInDefault="1">
+                <label>Email Log</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" canRestore="1">
+                    <label>Log Emails</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Lists every email sent through the module in CommerceGears &gt; SMTP &gt; Email Log.</comment>
+                </field>
+                <field id="keep_content" translate="label comment" type="select" sortOrder="20" showInDefault="1" canRestore="1">
+                    <label>Keep Email Content</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Needed to view and resend emails. The content can include personal data and links such as password resets, so keep the retention short. Queued and retried emails are always kept until they are sent.</comment>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+                <field id="retention_days" translate="label comment" type="text" sortOrder="30" showInDefault="1" canRestore="1">
+                    <label>Keep Log Entries For (Days)</label>
+                    <validate>required-entry validate-digits validate-digits-range digits-range-0-3650</validate>
+                    <comment>Default: 30. Older entries and their content are deleted daily; 0 keeps everything.</comment>
+                    <depends><field id="enabled">1</field></depends>
+                </field>
+            </group>
+            <group id="diagnostics" translate="label comment" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                <attribute type="expanded">1</attribute>
+                <label>Test and Diagnostics</label>
+                <comment>Uses the saved settings of the scope shown at the top left. Save your changes first.</comment>
+                <field id="panel" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <frontend_model>CommerceGears\Smtp\Block\Adminhtml\System\Config\Diagnostics</frontend_model>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

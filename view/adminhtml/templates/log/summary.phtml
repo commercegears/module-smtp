@@ -1,0 +1,23 @@
+<?php
+/**
+ * @var \CommerceGears\Smtp\Block\Adminhtml\Log\Summary $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<div class="commercegears-smtp-summary">
+    <h2 class="commercegears-smtp-summary-title"><?= $escaper->escapeHtml(__('Last 24 hours')) ?></h2>
+    <ul class="commercegears-smtp-tiles">
+        <?php foreach ($block->getTiles() as $tile): ?>
+            <li class="commercegears-smtp-tile is-<?= $escaper->escapeHtmlAttr($tile['status']) ?>">
+                <span class="commercegears-smtp-tile-count"><?= (int)$tile['count'] ?></span>
+                <span class="commercegears-smtp-tile-label"><?= $escaper->escapeHtml($tile['label']) ?></span>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php if (!$block->isLogEnabled()): ?>
+        <div class="message message-warning"><?= $escaper->escapeHtml(__('"Log Emails" is off: only queued and retried emails appear here.')) ?></div>
+    <?php endif; ?>
+    <?php if ($block->canConfigure()): ?>
+        <p class="commercegears-smtp-summary-link"><a href="<?= $escaper->escapeUrl($block->getSettingsUrl()) ?>"><?= $escaper->escapeHtml(__('SMTP settings, test email and DNS check')) ?></a></p>
+    <?php endif; ?>
+</div>

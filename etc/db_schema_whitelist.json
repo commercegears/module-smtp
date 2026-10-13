@@ -1,0 +1,68 @@
+{
+    "commercegears_smtp_log": {
+        "column": {
+            "log_id": true,
+            "store_id": true,
+            "status": true,
+            "template_id": true,
+            "subject": true,
+            "sender": true,
+            "recipient_to": true,
+            "recipient_cc": true,
+            "recipient_bcc": true,
+            "original_recipients": true,
+            "note": true,
+            "error_message": true,
+            "error_detail": true,
+            "smtp_reply": true,
+            "server": true,
+            "message_id": true,
+            "size": true,
+            "attempts": true,
+            "next_attempt_at": true,
+            "resent_from": true,
+            "created_at": true,
+            "updated_at": true,
+            "sent_at": true
+        },
+        "index": {
+            "COMMERCEGEARS_SMTP_LOG_STATUS_NEXT_ATTEMPT_AT": true,
+            "COMMERCEGEARS_SMTP_LOG_CREATED_AT": true,
+            "COMMERCEGEARS_SMTP_LOG_TEMPLATE_ID": true,
+            "FTI_356AD960FD66D97FE0ED657E5146A7E4": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "COMMERCEGEARS_SMTP_LOG_STORE_ID_STORE_STORE_ID": true
+        }
+    },
+    "commercegears_smtp_log_content": {
+        "column": {
+            "log_id": true,
+            "envelope": true,
+            "raw_message": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FK_AD9E476C83AEDE9E5CD9E1AE56299974": true
+        }
+    },
+    "commercegears_smtp_oauth_token": {
+        "column": {
+            "token_id": true,
+            "scope": true,
+            "scope_id": true,
+            "provider": true,
+            "fingerprint": true,
+            "account": true,
+            "refresh_token": true,
+            "connected_at": true,
+            "refreshed_at": true,
+            "last_error": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "COMMERCEGEARS_SMTP_OAUTH_TOKEN_SCOPE_SCOPE_ID": true
+        }
+    }
+}

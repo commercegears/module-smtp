@@ -1,0 +1,126 @@
+<?php
+/**
+ * @var \CommerceGears\Smtp\Block\Adminhtml\Log\View $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$log = $block->getLog();
+$content = $block->getContent();
+$parsed = $block->getParsed();
+$status = (string)$log->getData('status');
+$rows = [
+    (string)__('Status') => $block->getStatusLabel(),
+    (string)__('Email type') => $block->getEmailType(),
+    (string)__('Store view') => $block->getStoreName(),
+    (string)__('Subject') => (string)$log->getData('subject'),
+    (string)__('From') => (string)$log->getData('sender'),
+    (string)__('To') => (string)$log->getData('recipient_to'),
+    (string)__('Cc') => (string)$log->getData('recipient_cc'),
+    (string)__('Bcc') => (string)$log->getData('recipient_bcc'),
+    (string)__('Original recipients') => (string)$log->getData('original_recipients'),
+    (string)__('Note') => (string)$log->getData('note'),
+    (string)__('Created') => $block->formatLogDate($log->getData('created_at')),
+    (string)__('Sent') => $block->formatLogDate($log->getData('sent_at')),
+    (string)__('Next attempt') => $status === 'retry' ? $block->formatLogDate($log->getData('next_attempt_at')) : '',
+    (string)__('Attempts') => (string)$log->getData('attempts'),
+    (string)__('Server') => (string)$log->getData('server'),
+    (string)__('Server reply') => (string)$log->getData('smtp_reply'),
+    (string)__('Message-ID') => (string)$log->getData('message_id'),
+    (string)__('Size') => $block->formatSize((int)$log->getData('size')),
+];
+?>
+<div class="commercegears-smtp-view">
+    <div class="commercegears-smtp-view-actions">
+        <a class="action-default back" href="<?= $escaper->escapeUrl($block->getBackUrl()) ?>"><?= $escaper->escapeHtml(__('Back to Email Log')) ?></a>
+        <?php if ($log->getData('resent_from')): ?>
+            <a href="<?= $escaper->escapeUrl($block->getLogUrl((int)$log->getData('resent_from'))) ?>"><?= $escaper->escapeHtml(__('Original email #%1', (int)$log->getData('resent_from'))) ?></a>
+        <?php endif; ?>
+    </div>
+
+    <?php if ((string)$log->getData('error_message') !== ''): ?>
+        <div class="message message-error"><strong><?= $escaper->escapeHtml(__('Why it failed:')) ?></strong> <?= $escaper->escapeHtml((string)$log->getData('error_message')) ?></div>
+    <?php endif; ?>
+
+    <div class="commercegears-smtp-view-grid">
+        <section class="commercegears-smtp-card">
+            <h2><?= $escaper->escapeHtml(__('Details')) ?></h2>
+            <table class="admin__table-secondary commercegears-smtp-detail-table">
+                <tbody>
+                <?php foreach ($rows as $label => $value): ?>
+                    <?php if ($value === '' || $value === '0' && $label !== (string)__('Attempts')) { continue; } ?>
+                    <tr>
+                        <th scope="row"><?= $escaper->escapeHtml($label) ?></th>
+                        <td><?php if ($label === (string)__('Status')): ?><span class="commercegears-smtp-status is-<?= $escaper->escapeHtmlAttr($status) ?>"><?= $escaper->escapeHtml($value) ?></span><?php else: ?><?= $escaper->escapeHtml($value) ?><?php endif; ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="commercegears-smtp-card">
+            <h2><?= $escaper->escapeHtml(__('Send Again')) ?></h2>
+            <?php if ($content === null): ?>
+                <p><?= $escaper->escapeHtml(__('The content of this email was not kept ("Keep Email Content" is off or the email was cleaned up), so it cannot be viewed or sent again.')) ?></p>
+            <?php elseif (!$block->canManage()): ?>
+                <p><?= $escaper->escapeHtml(__('You do not have permission to send emails again.')) ?></p>
+            <?php else: ?>
+                <p><?= $escaper->escapeHtml(__('Sends the email now with a new Message-ID. The current delivery settings (test addresses, log only, blocklist) apply.')) ?></p>
+                <form method="post" action="<?= $escaper->escapeUrl($block->getResendUrl()) ?>" class="commercegears-smtp-resend">
+                    <?= $block->getBlockHtml('formkey') ?>
+                    <button type="submit" class="action-primary"><?= $escaper->escapeHtml(__('Send Again to the Same Recipients')) ?></button>
+                </form>
+                <form method="post" action="<?= $escaper->escapeUrl($block->getResendUrl()) ?>" class="commercegears-smtp-resend">
+                    <?= $block->getBlockHtml('formkey') ?>
+                    <label for="cg-smtp-resend-to"><?= $escaper->escapeHtml(__('Or send it to another address')) ?></label>
+                    <div class="commercegears-smtp-inline">
+                        <input type="email" required="required" name="recipient" id="cg-smtp-resend-to" class="input-text admin__control-text" placeholder="name@example.com"/>
+                        <button type="submit" class="action-default"><?= $escaper->escapeHtml(__('Send')) ?></button>
+                    </div>
+                </form>
+            <?php endif; ?>
+        </section>
+    </div>
+
+    <?php if ($content !== null): ?>
+        <section class="commercegears-smtp-card">
+            <h2><?= $escaper->escapeHtml(__('Content')) ?></h2>
+            <?php if ($block->getPreviewDocument() !== ''): ?>
+                <iframe class="commercegears-smtp-preview" sandbox="" referrerpolicy="no-referrer" loading="lazy"
+                        title="<?= $escaper->escapeHtmlAttr(__('Email preview')) ?>"
+                        srcdoc="<?= $escaper->escapeHtmlAttr($block->getPreviewDocument()) ?>"></iframe>
+            <?php endif; ?>
+            <?php if ($parsed['text'] !== ''): ?>
+                <details <?= $block->getPreviewDocument() === '' ? 'open' : '' ?>>
+                    <summary><?= $escaper->escapeHtml(__('Text version')) ?></summary>
+                    <pre class="commercegears-smtp-pre"><?= $escaper->escapeHtml($parsed['text']) ?></pre>
+                </details>
+            <?php endif; ?>
+            <?php if ($parsed['attachments'] !== []): ?>
+                <h3><?= $escaper->escapeHtml(__('Attachments')) ?></h3>
+                <ul>
+                    <?php foreach ($parsed['attachments'] as $attachment): ?>
+                        <li><?= $escaper->escapeHtml($attachment['name']) ?> <span class="commercegears-smtp-muted">(<?= $escaper->escapeHtml($attachment['type']) ?>, <?= $escaper->escapeHtml($block->formatSize($attachment['size'])) ?>)</span></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <details>
+                <summary><?= $escaper->escapeHtml(__('Headers')) ?></summary>
+                <table class="admin__table-secondary commercegears-smtp-detail-table">
+                    <tbody>
+                    <?php foreach ($block->getHeaders() as $header): ?>
+                        <tr><th scope="row"><?= $escaper->escapeHtml($header['name']) ?></th><td><?= $escaper->escapeHtml($header['value']) ?></td></tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </details>
+        </section>
+    <?php endif; ?>
+
+    <?php if ((string)$log->getData('error_detail') !== ''): ?>
+        <section class="commercegears-smtp-card">
+            <details>
+                <summary><?= $escaper->escapeHtml(__('Technical details and SMTP conversation (passwords hidden)')) ?></summary>
+                <pre class="commercegears-smtp-pre"><?= $escaper->escapeHtml((string)$log->getData('error_detail')) ?></pre>
+            </details>
+        </section>
+    <?php endif; ?>
+</div>

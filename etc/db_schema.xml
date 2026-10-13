@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="commercegears_smtp_log" resource="default" engine="innodb" comment="CommerceGears SMTP email log and queue">
+        <column xsi:type="int" name="log_id" unsigned="true" nullable="false" identity="true" comment="Log ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="true" comment="Store view"/>
+        <column xsi:type="varchar" name="status" length="16" nullable="false" default="pending" comment="pending, sending, sent, retry, failed, skipped"/>
+        <column xsi:type="varchar" name="template_id" length="255" nullable="true" comment="Email template identifier"/>
+        <column xsi:type="varchar" name="subject" length="512" nullable="true" comment="Subject"/>
+        <column xsi:type="varchar" name="sender" length="255" nullable="true" comment="From address"/>
+        <column xsi:type="text" name="recipient_to" nullable="true" comment="To"/>
+        <column xsi:type="text" name="recipient_cc" nullable="true" comment="Cc"/>
+        <column xsi:type="text" name="recipient_bcc" nullable="true" comment="Bcc"/>
+        <column xsi:type="text" name="original_recipients" nullable="true" comment="Recipients before redirect or blocklist"/>
+        <column xsi:type="text" name="note" nullable="true" comment="Delivery note"/>
+        <column xsi:type="text" name="error_message" nullable="true" comment="Readable error"/>
+        <column xsi:type="mediumtext" name="error_detail" nullable="true" comment="Technical error and SMTP transcript"/>
+        <column xsi:type="varchar" name="smtp_reply" length="512" nullable="true" comment="Final server reply"/>
+        <column xsi:type="varchar" name="server" length="255" nullable="true" comment="Server host and port"/>
+        <column xsi:type="varchar" name="message_id" length="255" nullable="true" comment="Message-ID header"/>
+        <column xsi:type="int" name="size" unsigned="true" nullable="false" default="0" comment="Size in bytes"/>
+        <column xsi:type="smallint" name="attempts" unsigned="true" nullable="false" default="0" comment="Send attempts"/>
+        <column xsi:type="datetime" name="next_attempt_at" nullable="true" comment="Next send attempt (UTC)"/>
+        <column xsi:type="int" name="resent_from" unsigned="true" nullable="true" comment="Original log ID of a resend"/>
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" comment="Created"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" comment="Updated"/>
+        <column xsi:type="datetime" name="sent_at" nullable="true" comment="Sent (UTC)"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="log_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="COMMERCEGEARS_SMTP_LOG_STORE_ID_STORE_STORE_ID" table="commercegears_smtp_log"
+                    column="store_id" referenceTable="store" referenceColumn="store_id" onDelete="SET NULL"/>
+        <index referenceId="COMMERCEGEARS_SMTP_LOG_STATUS_NEXT_ATTEMPT_AT" indexType="btree">
+            <column name="status"/>
+            <column name="next_attempt_at"/>
+        </index>
+        <index referenceId="COMMERCEGEARS_SMTP_LOG_CREATED_AT" indexType="btree">
+            <column name="created_at"/>
+        </index>
+        <index referenceId="COMMERCEGEARS_SMTP_LOG_TEMPLATE_ID" indexType="btree">
+            <column name="template_id"/>
+        </index>
+        <index referenceId="COMMERCEGEARS_SMTP_LOG_FULLTEXT" indexType="fulltext">
+            <column name="subject"/>
+            <column name="sender"/>
+            <column name="recipient_to"/>
+            <column name="recipient_cc"/>
+            <column name="recipient_bcc"/>
+        </index>
+    </table>
+    <table name="commercegears_smtp_log_content" resource="default" engine="innodb" comment="CommerceGears SMTP stored email content">
+        <column xsi:type="int" name="log_id" unsigned="true" nullable="false" comment="Log ID"/>
+        <column xsi:type="text" name="envelope" nullable="false" comment="Sender and recipients (JSON)"/>
+        <column xsi:type="mediumblob" name="raw_message" nullable="false" comment="Raw MIME message, gzip compressed"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="log_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="COMMERCEGEARS_SMTP_LOG_CONTENT_LOG_ID_COMMERCEGEARS_SMTP_LOG_LOG_ID"
+                    table="commercegears_smtp_log_content" column="log_id" referenceTable="commercegears_smtp_log"
+                    referenceColumn="log_id" onDelete="CASCADE"/>
+    </table>
+    <table name="commercegears_smtp_oauth_token" resource="default" engine="innodb" comment="CommerceGears SMTP OAuth connections">
+        <column xsi:type="int" name="token_id" unsigned="true" nullable="false" identity="true" comment="Token ID"/>
+        <column xsi:type="varchar" name="scope" length="8" nullable="false" comment="Config scope"/>
+        <column xsi:type="int" name="scope_id" unsigned="true" nullable="false" default="0" comment="Config scope ID"/>
+        <column xsi:type="varchar" name="provider" length="16" nullable="false" comment="google or microsoft"/>
+        <column xsi:type="varchar" name="fingerprint" length="64" nullable="false" comment="Client and account fingerprint"/>
+        <column xsi:type="varchar" name="account" length="255" nullable="true" comment="Mailbox"/>
+        <column xsi:type="text" name="refresh_token" nullable="true" comment="Refresh token (encrypted)"/>
+        <column xsi:type="datetime" name="connected_at" nullable="true" comment="Connected (UTC)"/>
+        <column xsi:type="datetime" name="refreshed_at" nullable="true" comment="Last token refresh (UTC)"/>
+        <column xsi:type="text" name="last_error" nullable="true" comment="Last token error"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="token_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="COMMERCEGEARS_SMTP_OAUTH_TOKEN_SCOPE_SCOPE_ID">
+            <column name="scope"/>
+            <column name="scope_id"/>
+        </constraint>
+    </table>
+</schema>

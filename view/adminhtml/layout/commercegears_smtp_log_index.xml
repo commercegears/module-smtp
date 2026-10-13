@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="CommerceGears_Smtp::css/smtp.css"/>
+    </head>
+    <body>
+        <referenceContainer name="content">
+            <block class="CommerceGears\Smtp\Block\Adminhtml\Log\Summary" name="commercegears.smtp.log.summary" template="CommerceGears_Smtp::log/summary.phtml"/>
+            <uiComponent name="commercegears_smtp_log_listing"/>
+        </referenceContainer>
+    </body>
+</page>

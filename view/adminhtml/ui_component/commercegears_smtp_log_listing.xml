@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">commercegears_smtp_log_listing.commercegears_smtp_log_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>commercegears_smtp_log_columns</spinner>
+        <deps>
+            <dep>commercegears_smtp_log_listing.commercegears_smtp_log_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="commercegears_smtp_log_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">log_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>CommerceGears_Smtp::log</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="commercegears_smtp_log_listing_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>log_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filterSearch name="fulltext">
+            <settings>
+                <placeholder translate="true">Search by subject, sender or recipient</placeholder>
+            </settings>
+        </filterSearch>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction">
+            <action name="resend">
+                <settings>
+                    <confirm>
+                        <message translate="true">Send the selected emails again? They are queued and sent by cron.</message>
+                        <title translate="true">Send Again</title>
+                    </confirm>
+                    <url path="commercegears_smtp/log/massResend"/>
+                    <type>resend</type>
+                    <label translate="true">Send Again</label>
+                </settings>
+            </action>
+            <action name="delete">
+                <settings>
+                    <confirm>
+                        <message translate="true">Delete the selected log entries? Queued emails among them will not be sent.</message>
+                        <title translate="true">Delete</title>
+                    </confirm>
+                    <url path="commercegears_smtp/log/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="commercegears_smtp_log_columns">
+        <selectionsColumn name="ids" sortOrder="0">
+            <settings>
+                <indexField>log_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="log_id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>desc</sorting>
+            </settings>
+        </column>
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="20">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created</label>
+            </settings>
+        </column>
+        <column name="status" class="CommerceGears\Smtp\Ui\Component\Listing\Column\StatusBadge" component="Magento_Ui/js/grid/columns/column" sortOrder="30">
+            <settings>
+                <options class="CommerceGears\Smtp\Model\Source\Status"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <label translate="true">Status</label>
+            </settings>
+        </column>
+        <column name="template_id" class="CommerceGears\Smtp\Ui\Component\Listing\Column\EmailType" component="Magento_Ui/js/grid/columns/column" sortOrder="40">
+            <settings>
+                <options class="CommerceGears\Smtp\Model\Source\EmailType"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Email Type</label>
+            </settings>
+        </column>
+        <column name="subject" sortOrder="50">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Subject</label>
+            </settings>
+        </column>
+        <column name="recipient_to" sortOrder="60">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">To</label>
+            </settings>
+        </column>
+        <column name="sender" sortOrder="70">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">From</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="store_id" class="CommerceGears\Smtp\Ui\Component\Listing\Column\StoreName" component="Magento_Ui/js/grid/columns/column" sortOrder="80">
+            <settings>
+                <options class="Magento\Store\Ui\Component\Listing\Column\Store\Options"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Store View</label>
+            </settings>
+        </column>
+        <column name="attempts" sortOrder="90">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Attempts</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="error_message" sortOrder="100">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Problem</label>
+            </settings>
+        </column>
+        <column name="note" sortOrder="110">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Note</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="original_recipients" sortOrder="120">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Original Recipients</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="server" sortOrder="130">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Server</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="sent_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="140">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Sent</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="CommerceGears\Smtp\Ui\Component\Listing\Column\LogActions" sortOrder="200">
+            <settings>
+                <indexField>log_id</indexField>
+                <label translate="true">Action</label>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

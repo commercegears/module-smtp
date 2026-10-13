@@ -1,0 +1,21 @@
+<?php
+/**
+ * @var \CommerceGears\Smtp\Block\Adminhtml\System\Config\ProviderHelp $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<div class="commercegears-smtp-help" id="commercegears-smtp-provider-help" aria-live="polite">
+    <div class="commercegears-smtp-help-server" data-role="server"></div>
+    <div class="commercegears-smtp-help-text" data-role="help"></div>
+</div>
+<script type="text/x-magento-init">
+<?= /* @noEscape */ json_encode([
+    '#commercegears-smtp-provider-help' => [
+        'CommerceGears_Smtp/js/provider-help' => [
+            'select' => '#' . $block->getProviderSelectId(),
+            'presets' => $block->getPresetsData(),
+            'serverLabel' => (string)__('Server:'),
+        ],
+    ],
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+</script>

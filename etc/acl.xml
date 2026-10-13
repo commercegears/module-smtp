@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="CommerceGears_Core::core">
+                    <resource id="CommerceGears_Smtp::smtp" title="SMTP" translate="title" sortOrder="45">
+                        <resource id="CommerceGears_Smtp::log" title="View Email Log" translate="title" sortOrder="10">
+                            <resource id="CommerceGears_Smtp::log_manage" title="Resend and Delete Emails" translate="title" sortOrder="10"/>
+                        </resource>
+                        <resource id="CommerceGears_Smtp::config" title="Settings, Test and Diagnostics" translate="title" sortOrder="20"/>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

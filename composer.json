@@ -1,0 +1,35 @@
+{
+    "name": "commercegears/module-smtp",
+    "description": "SMTP for Magento 2: send store emails through Google Workspace, Microsoft 365 (OAuth 2.0), Amazon SES, SendGrid, Mailgun, Brevo, Postmark or any SMTP server, with an email log, resend, retries, a staging safety switch and DNS checks.",
+    "type": "magento2-module",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.2.0||~8.3.0||~8.4.0||~8.5.0",
+        "ext-json": "*",
+        "ext-openssl": "*",
+        "ext-zlib": "*",
+        "magento/framework": "~103.0.6",
+        "commercegears/module-core": "^2.0",
+        "magento/module-backend": "*",
+        "magento/module-config": "*",
+        "magento/module-cron": "*",
+        "magento/module-email": "*",
+        "magento/module-store": "*",
+        "magento/module-ui": "*"
+    },
+    "suggest": {
+        "commercegears/module-admin-activity-log": "Records who changed the SMTP settings",
+        "commercegears/module-cron-manager": "Shows when the email queue and log clean-up jobs last ran"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "CommerceGears\\Smtp\\": ""
+        }
+    },
+    "replace": {
+        "softaware/module-smtp": "*"
+    }
+}

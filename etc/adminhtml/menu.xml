@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="CommerceGears_Smtp::smtp" title="SMTP" translate="title" module="CommerceGears_Smtp"
+             sortOrder="45" parent="CommerceGears_Core::core" resource="CommerceGears_Smtp::smtp"/>
+        <add id="CommerceGears_Smtp::log" title="Email Log" translate="title" module="CommerceGears_Smtp"
+             sortOrder="10" parent="CommerceGears_Smtp::smtp" action="commercegears_smtp/log/index"
+             resource="CommerceGears_Smtp::log"/>
+        <add id="CommerceGears_Smtp::config" title="Settings" translate="title" module="CommerceGears_Smtp"
+             sortOrder="20" parent="CommerceGears_Smtp::smtp"
+             action="adminhtml/system_config/edit/section/commercegears_smtp" resource="CommerceGears_Smtp::config"/>
+    </menu>
+</config>

@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <commercegears_smtp>
+            <general>
+                <enabled>0</enabled>
+            </general>
+            <connection>
+                <provider>custom</provider>
+                <encryption>tls</encryption>
+                <auth_method>auto</auth_method>
+                <verify_tls>1</verify_tls>
+                <region_ses>eu-west-1</region_ses>
+                <region_mailgun>smtp.mailgun.org</region_mailgun>
+                <region_zoho>eu</region_zoho>
+                <oauth_flow>delegated</oauth_flow>
+                <password backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
+                <oauth_client_secret backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
+                <timeout>20</timeout>
+            </connection>
+            <delivery>
+                <mode>live</mode>
+            </delivery>
+            <queue>
+                <sending>immediate</sending>
+                <retry>1</retry>
+                <max_attempts>4</max_attempts>
+            </queue>
+            <log>
+                <enabled>1</enabled>
+                <keep_content>1</keep_content>
+                <retention_days>30</retention_days>
+            </log>
+        </commercegears_smtp>
+    </default>
+</config>

@@ -1,0 +1,59 @@
+<?php
+/**
+ * @var \CommerceGears\Smtp\Block\Adminhtml\System\Config\Diagnostics $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$urls = $block->getUrls();
+?>
+<div class="commercegears-smtp-diagnostics" id="commercegears-smtp-diagnostics">
+    <p class="commercegears-smtp-muted"><?= $escaper->escapeHtml($block->getScopeLabel()) ?>.
+        <?php if (!$block->isModuleEnabled()): ?>
+            <?= $escaper->escapeHtml(__('The module is off for this scope: the tests use the saved server settings, store emails are not affected yet.')) ?>
+        <?php endif; ?>
+    </p>
+    <div class="commercegears-smtp-tools">
+        <div class="commercegears-smtp-tool">
+            <h4><?= $escaper->escapeHtml(__('Send Test Email')) ?></h4>
+            <label for="cg-smtp-test-to"><?= $escaper->escapeHtml(__('Send to')) ?></label>
+            <div class="commercegears-smtp-inline">
+                <input type="email" id="cg-smtp-test-to" class="input-text admin__control-text" value="<?= $escaper->escapeHtmlAttr($block->getDefaultRecipient()) ?>" autocomplete="email"/>
+                <button type="button" class="action-default primary" data-action="test"><?= $escaper->escapeHtml(__('Send Test Email')) ?></button>
+            </div>
+            <p class="note"><span><?= $escaper->escapeHtml(__('From: %1. Goes only to the address above.', $block->getSenderEmail())) ?></span></p>
+        </div>
+        <div class="commercegears-smtp-tool">
+            <h4><?= $escaper->escapeHtml(__('Check Connection')) ?></h4>
+            <p><?= $escaper->escapeHtml(__('Connects, starts encryption and signs in, without sending an email.')) ?></p>
+            <button type="button" class="action-default" data-action="connection"><?= $escaper->escapeHtml(__('Check Connection')) ?></button>
+        </div>
+        <div class="commercegears-smtp-tool">
+            <h4><?= $escaper->escapeHtml(__('Check DNS Records')) ?></h4>
+            <label for="cg-smtp-dns-domain"><?= $escaper->escapeHtml(__('Sender domain')) ?></label>
+            <input type="text" id="cg-smtp-dns-domain" class="input-text admin__control-text" value="<?= $escaper->escapeHtmlAttr($block->getSenderDomain()) ?>"/>
+            <label for="cg-smtp-dns-selector"><?= $escaper->escapeHtml(__('DKIM selector (optional)')) ?></label>
+            <div class="commercegears-smtp-inline">
+                <input type="text" id="cg-smtp-dns-selector" class="input-text admin__control-text" placeholder="<?= $escaper->escapeHtmlAttr(__('for example s1')) ?>"/>
+                <button type="button" class="action-default" data-action="dns"><?= $escaper->escapeHtml(__('Check DNS Records')) ?></button>
+            </div>
+        </div>
+    </div>
+    <div class="commercegears-smtp-result" data-role="result" role="status" aria-live="polite" tabindex="-1"></div>
+    <p><a href="<?= $escaper->escapeUrl($urls['log']) ?>"><?= $escaper->escapeHtml(__('Open the email log')) ?></a></p>
+</div>
+<script type="text/x-magento-init">
+<?= /* @noEscape */ json_encode([
+    '#commercegears-smtp-diagnostics' => [
+        'CommerceGears_Smtp/js/diagnostics' => [
+            'urls' => $urls,
+            'scope' => (object)$block->getScopeParams(),
+            'labels' => [
+                'working' => (string)__('Working...'),
+                'details' => (string)__('Technical details'),
+                'transcript' => (string)__('SMTP conversation (passwords hidden)'),
+                'failed' => (string)__('The request failed. Reload the page and try again.'),
+                'record' => (string)__('Record'),
+            ],
+        ],
+    ],
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+</script>
