@@ -19,6 +19,12 @@ Yes. Choose "Microsoft 365 (OAuth 2.0)". You can sign in once with the mailbox, 
 credentials) where no person has to sign in and nothing has to be reconnected later. The user guide lists the steps in
 Microsoft Entra ID and Exchange.
 
+**I connected the wrong Google or Microsoft account. What happens?**
+
+Emails are sent as the mailbox entered as the username. If you sign in with another account when you click Connect
+Account, the provider refuses the SMTP sign-in and the settings page and email log say so. Click Connect Account
+again and sign in with the mailbox from the username field.
+
 **Google says my password is wrong.**
 
 Google no longer accepts the normal account password for SMTP. Use an app password (needs 2-Step Verification) with
@@ -58,7 +64,9 @@ With "Keep Email Content" on (the default), the full email is kept compressed in
 resend it. Emails can contain personal data and links such as password resets, so the log is cleaned after 30 days by
 default. You can shorten that, keep the content for fewer days than the log entry ("Keep Email Content For"), or
 switch "Keep Email Content" off (content already stored is then deleted at the next daily clean-up); queued and
-retried emails are always kept until they are sent.
+retried emails are always kept until they are sent. Only admins with the "View Email Content" permission can open
+the content; others see the list with status, recipients and subject only. Remote images in the preview load only
+when you click "Load Remote Content".
 
 **My emails go to spam. Can the module help?**
 

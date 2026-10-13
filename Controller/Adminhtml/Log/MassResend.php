@@ -34,24 +34,34 @@ class MassResend extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * Sending again reveals the content (to another address), so it also needs "View Email Content".
+     */
+    protected function _isAllowed()
+    {
+        return parent::_isAllowed() && $this->_authorization->isAllowed('CommerceGears_Smtp::log_content');
+    }
+
     public function execute()
     {
         $collection = $this->filter->getCollection($this->collectionFactory->create());
         $queued = 0;
-        $skipped = 0;
+        /** @var array<string, int> $skipped reason => count */
+        $skipped = [];
         foreach (array_slice($collection->getAllIds(), 0, self::MAX) as $id) {
             try {
                 $this->mailer->queueResend((int)$id);
                 $queued++;
-            } catch (LocalizedException) {
-                $skipped++;
+            } catch (LocalizedException $e) {
+                $reason = $e->getMessage();
+                $skipped[$reason] = ($skipped[$reason] ?? 0) + 1;
             }
         }
         if ($queued > 0) {
             $this->messageManager->addSuccessMessage(__('%1 email(s) were queued and will be sent again by cron within a few minutes.', $queued));
         }
-        if ($skipped > 0) {
-            $this->messageManager->addWarningMessage(__('%1 email(s) were skipped because their content was not kept.', $skipped));
+        foreach ($skipped as $reason => $count) {
+            $this->messageManager->addWarningMessage(__('%1 email(s) were skipped: %2', $count, $reason));
         }
         if ($collection->getSize() > self::MAX) {
             $this->messageManager->addNoticeMessage(__('Only the first %1 selected emails were queued.', self::MAX));

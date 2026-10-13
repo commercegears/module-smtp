@@ -29,7 +29,8 @@
             "COMMERCEGEARS_SMTP_LOG_STATUS_NEXT_ATTEMPT_AT": true,
             "COMMERCEGEARS_SMTP_LOG_CREATED_AT": true,
             "COMMERCEGEARS_SMTP_LOG_TEMPLATE_ID": true,
-            "FTI_356AD960FD66D97FE0ED657E5146A7E4": true
+            "FTI_356AD960FD66D97FE0ED657E5146A7E4": true,
+            "COMMERCEGEARS_SMTP_LOG_STORE_ID": true
         },
         "constraint": {
             "PRIMARY": true,

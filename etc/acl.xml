@@ -6,6 +6,7 @@
                 <resource id="CommerceGears_Core::core">
                     <resource id="CommerceGears_Smtp::smtp" title="SMTP" translate="title" sortOrder="45">
                         <resource id="CommerceGears_Smtp::log" title="View Email Log" translate="title" sortOrder="10">
+                            <resource id="CommerceGears_Smtp::log_content" title="View Email Content" translate="title" sortOrder="5"/>
                             <resource id="CommerceGears_Smtp::log_manage" title="Resend and Delete Emails" translate="title" sortOrder="10"/>
                         </resource>
                         <resource id="CommerceGears_Smtp::config" title="Settings, Test and Diagnostics" translate="title" sortOrder="20"/>

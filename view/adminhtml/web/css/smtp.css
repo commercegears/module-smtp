@@ -74,3 +74,4 @@
 .commercegears-smtp-detail-list { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.5rem; margin: .75rem 0 0; }
 .commercegears-smtp-detail-key { font-weight: 600; }
 .commercegears-smtp-detail-value { word-break: break-word; }
+.commercegears-smtp-remote { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; justify-content: space-between; margin: 0 0 .75rem; padding: .6rem .8rem; background: #f8f8f8; border: 1px solid #e3e3e3; border-radius: 3px; color: #41362f; }

@@ -13,6 +13,7 @@ use CommerceGears\Smtp\Model\Log;
 use CommerceGears\Smtp\Model\LogFactory;
 use CommerceGears\Smtp\Model\Message\MimeMessage;
 use CommerceGears\Smtp\Model\Message\MimeParser;
+use CommerceGears\Smtp\Model\ResendGuard;
 use CommerceGears\Smtp\Model\ResourceModel\Log as LogResource;
 use CommerceGears\Smtp\Model\Smtp\Client;
 use CommerceGears\Smtp\Model\Source\Status;
@@ -43,6 +44,7 @@ class View extends Template
         private readonly MimeParser $mimeParser,
         private readonly Resolver $emailTypes,
         private readonly Status $statusSource,
+        private readonly ResendGuard $resendGuard,
         array $data = []
     ) {
         parent::__construct($context, $data);
@@ -63,9 +65,56 @@ class View extends Template
     public function getContent(): ?array
     {
         if ($this->content === false) {
-            $this->content = $this->getLog()->getId() ? $this->logResource->loadContent((int)$this->getLog()->getId()) : null;
+            // Never loaded without "View Email Content": it can hold personal data and password reset links.
+            $this->content = $this->getLog()->getId() && $this->canViewContent()
+                ? $this->logResource->loadContent((int)$this->getLog()->getId())
+                : null;
         }
         return $this->content;
+    }
+
+    public function canViewContent(): bool
+    {
+        return $this->_authorization->isAllowed('CommerceGears_Smtp::log_content');
+    }
+
+    public function isContentKept(): bool
+    {
+        return $this->getLog()->getId() && $this->logResource->hasContent((int)$this->getLog()->getId());
+    }
+
+    /**
+     * Why the email cannot be sent again (module off for its store view, store view deleted), or null.
+     */
+    public function getResendBlocker(): ?string
+    {
+        return $this->resendGuard->getBlocker($this->getLog()->getData('store_id'));
+    }
+
+    /**
+     * Remote images and styles load only when the admin asks for it on this page (tracking pixels would
+     * otherwise tell the sender's servers the admin's IP address).
+     */
+    public function isRemoteContentAllowed(): bool
+    {
+        return (string)$this->getRequest()->getParam('remote') === '1';
+    }
+
+    public function getRemoteContentUrl(bool $allow): string
+    {
+        $params = ['id' => $this->getLog()->getId()];
+        if ($allow) {
+            $params['remote'] = 1;
+        }
+        return $this->getUrl('*/*/view', $params);
+    }
+
+    public function hasRemoteContent(): bool
+    {
+        return preg_match(
+            '/(?:\b(?:src|background|poster)\s*=\s*["\']?\s*(?:https?:)?\/\/|url\(\s*["\']?\s*(?:https?:)?\/\/|@import|<link\b[^>]*stylesheet)/i',
+            $this->getParsed()['html']
+        ) === 1;
     }
 
     /**
@@ -163,7 +212,8 @@ class View extends Template
     }
 
     /**
-     * The HTML body for a sandboxed iframe: scripts, forms and remote loading are blocked by the sandbox and CSP.
+     * The HTML body for a sandboxed iframe: scripts and forms are blocked by the sandbox; the CSP blocks remote
+     * images, styles and fonts unless the admin chose "Load remote content" on this page.
      */
     public function getPreviewDocument(): string
     {
@@ -171,10 +221,13 @@ class View extends Template
         if ($html === '') {
             return '';
         }
-        $csp = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: https: http:; style-src \'unsafe-inline\' https:; font-src https: data:">';
-        if (stripos($html, '<head>') !== false) {
-            return (string)preg_replace('/<head>/i', '<head>' . $csp, $html, 1);
+        $policy = $this->isRemoteContentAllowed()
+            ? "default-src 'none'; img-src data: https: http:; style-src 'unsafe-inline' https: http:; font-src data: https: http:"
+            : "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:";
+        $csp = '<meta http-equiv="Content-Security-Policy" content="' . $policy . '">';
+        if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
+            return (string)preg_replace('/<head\b[^>]*>/i', '$0' . $csp, $html, 1);
         }
-        return $csp . $html;
+        return '<head>' . $csp . '</head>' . $html;
     }
 }

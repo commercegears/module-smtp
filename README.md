@@ -21,8 +21,10 @@ log with resend, retries of failed emails, a staging safety switch and plain-lan
 - **Readable errors**: app password needed, SMTP AUTH switched off for the Microsoft 365 mailbox, SendAsDenied,
   port and encryption mismatch, blocked port, certificate name, unverified sender (SES), too large, DMARC rejection.
 - **Email log**: grid with keyword search and filters (status, email type, store view, dates), last 24 hours summary,
-  detail page with safe HTML preview, text version, headers, attachment list, delivery notes and SMTP transcript.
-- **Resend** one email now (same recipients or another address, with a new Message-ID) or many at once (queued).
+  detail page with safe HTML preview (remote images blocked until you load them for that email), text version,
+  headers, attachment list, delivery notes and SMTP transcript. Content needs its own permission.
+- **Resend** one email now (same recipients or another address, with a new Message-ID) or many at once (queued);
+  refused while the module is off for the email's store view or the store view was deleted.
 - **Retries**: failed emails are kept and retried by cron after 5, 15, 60 and 240 minutes (configurable attempts).
   An address the server refuses permanently (for example a typo) is left out and noted; the other recipients, such as
   the store's own Bcc copy, still get the email.
@@ -44,8 +46,9 @@ log with resend, retries of failed emails, a staging safety switch and plain-lan
 *Stores > Configuration > CommerceGears > SMTP* (also *CommerceGears > SMTP > Settings*). Email log:
 *CommerceGears > SMTP > Email Log*.
 
-ACL: `CommerceGears_Smtp::smtp` > `::log` (view the log) > `::log_manage` (resend, delete); `::config` (settings,
-test buttons, OAuth connect).
+ACL: `CommerceGears_Smtp::smtp` > `::log` (view the log list and email details) > `::log_content` (preview, text,
+headers, attachments) and `::log_manage` (delete; resend also needs `::log_content`); `::config` (settings, test
+buttons, OAuth connect).
 
 ## CLI
 

@@ -20,6 +20,7 @@ use CommerceGears\Smtp\Model\Smtp\TransportFailure;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\MailException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -38,7 +39,9 @@ class Mailer
         private readonly LogFactory $logFactory,
         private readonly LogResource $logResource,
         private readonly DateTime $dateTime,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ResendGuard $resendGuard,
+        private readonly StoreManagerInterface $storeManager
     ) {
     }
 
@@ -177,6 +180,16 @@ class Mailer
             return 'failed';
         }
         $storeId = $log->getData('store_id') !== null ? (int)$log->getData('store_id') : null;
+        if ($storeId !== null && $storeId > 0 && !$this->storeExists($storeId)) {
+            $log->addData([
+                'status' => Log::STATUS_FAILED,
+                'error_message' => (string)__('The store view of this email no longer exists, so it cannot be sent.'),
+                'next_attempt_at' => null,
+            ]);
+            $this->logResource->save($log);
+            $this->cleanupAfterFinal($log);
+            return 'failed';
+        }
         $scope = Scope::store((int)$storeId);
         $email = OutgoingEmail::fromStored($content['raw'], $content['envelope']);
         $prepared = $this->preparer->prepare($email, $scope, null, !empty($content['envelope']['resend']));
@@ -442,6 +455,10 @@ class Mailer
         if (!$original->getId()) {
             throw new LocalizedException(__('This email no longer exists in the log.'));
         }
+        $blocker = $this->resendGuard->getBlocker($original->getData('store_id'));
+        if ($blocker !== null) {
+            throw new LocalizedException(__('%1', $blocker));
+        }
         $content = $this->logResource->loadContent($logId);
         if ($content === null) {
             throw new LocalizedException(__('The content of this email was not kept, so it cannot be sent again.'));
@@ -464,6 +481,16 @@ class Mailer
     private static function toSmtpException(\Throwable $e): SmtpException
     {
         return $e instanceof SmtpException ? $e : new SmtpException($e->getMessage(), SmtpException::STAGE_MESSAGE, 0, '', $e);
+    }
+
+    private function storeExists(int $storeId): bool
+    {
+        try {
+            $this->storeManager->getStore($storeId);
+            return true;
+        } catch (\Magento\Framework\Exception\NoSuchEntityException) {
+            return false;
+        }
     }
 
     private function safeSettings(Scope $scope): ?ConnectionSettings

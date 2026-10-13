@@ -27,14 +27,17 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="log_id"/>
         </constraint>
-        <constraint xsi:type="foreign" referenceId="COMMERCEGEARS_SMTP_LOG_STORE_ID_STORE_STORE_ID" table="commercegears_smtp_log"
-                    column="store_id" referenceTable="store" referenceColumn="store_id" onDelete="SET NULL"/>
         <index referenceId="COMMERCEGEARS_SMTP_LOG_STATUS_NEXT_ATTEMPT_AT" indexType="btree">
             <column name="status"/>
             <column name="next_attempt_at"/>
         </index>
         <index referenceId="COMMERCEGEARS_SMTP_LOG_CREATED_AT" indexType="btree">
             <column name="created_at"/>
+        </index>
+        <!-- No foreign key to the store table: the log keeps the ID of a deleted store view, so it shows as
+             deleted and is never resent through another store's settings. -->
+        <index referenceId="COMMERCEGEARS_SMTP_LOG_STORE_ID" indexType="btree">
+            <column name="store_id"/>
         </index>
         <index referenceId="COMMERCEGEARS_SMTP_LOG_TEMPLATE_ID" indexType="btree">
             <column name="template_id"/>

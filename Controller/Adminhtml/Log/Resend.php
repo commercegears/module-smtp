@@ -30,6 +30,14 @@ class Resend extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * Sending again reveals the content (to another address), so it also needs "View Email Content".
+     */
+    protected function _isAllowed()
+    {
+        return parent::_isAllowed() && $this->_authorization->isAllowed('CommerceGears_Smtp::log_content');
+    }
+
     public function execute()
     {
         $id = (int)$this->getRequest()->getParam('id');

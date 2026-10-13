@@ -5,6 +5,8 @@
  */
 $log = $block->getLog();
 $content = $block->getContent();
+$contentKept = $block->isContentKept();
+$resendBlocker = $contentKept ? $block->getResendBlocker() : null;
 $parsed = $block->getParsed();
 $status = (string)$log->getData('status');
 $rows = [
@@ -58,10 +60,12 @@ $rows = [
 
         <section class="commercegears-smtp-card">
             <h2><?= $escaper->escapeHtml(__('Send Again')) ?></h2>
-            <?php if ($content === null): ?>
+            <?php if (!$block->canManage() || !$block->canViewContent()): ?>
+                <p><?= $escaper->escapeHtml(__('You do not have permission to send emails again (it needs "Resend and Delete Emails" and "View Email Content").')) ?></p>
+            <?php elseif (!$contentKept): ?>
                 <p><?= $escaper->escapeHtml(__('The content of this email was not kept ("Keep Email Content" is off or the email was cleaned up), so it cannot be viewed or sent again.')) ?></p>
-            <?php elseif (!$block->canManage()): ?>
-                <p><?= $escaper->escapeHtml(__('You do not have permission to send emails again.')) ?></p>
+            <?php elseif ($resendBlocker !== null): ?>
+                <p><?= $escaper->escapeHtml($resendBlocker) ?></p>
             <?php else: ?>
                 <p><?= $escaper->escapeHtml(__('Sends the email now with a new Message-ID. The current delivery settings (test addresses, log only, blocklist) apply.')) ?></p>
                 <form method="post" action="<?= $escaper->escapeUrl($block->getResendUrl()) ?>" class="commercegears-smtp-resend">
@@ -80,9 +84,25 @@ $rows = [
         </section>
     </div>
 
-    <?php if ($content !== null): ?>
+    <?php if ($contentKept && !$block->canViewContent()): ?>
         <section class="commercegears-smtp-card">
             <h2><?= $escaper->escapeHtml(__('Content')) ?></h2>
+            <p><?= $escaper->escapeHtml(__('You do not have permission to view the content of emails (it needs "View Email Content"). The content can include personal data and links such as password resets.')) ?></p>
+        </section>
+    <?php elseif ($content !== null): ?>
+        <section class="commercegears-smtp-card">
+            <h2><?= $escaper->escapeHtml(__('Content')) ?></h2>
+            <?php if ($block->getPreviewDocument() !== '' && $block->hasRemoteContent()): ?>
+                <div class="commercegears-smtp-remote">
+                    <?php if ($block->isRemoteContentAllowed()): ?>
+                        <span><?= $escaper->escapeHtml(__('Remote images and styles are shown.')) ?></span>
+                        <a class="action-default" href="<?= $escaper->escapeUrl($block->getRemoteContentUrl(false)) ?>"><?= $escaper->escapeHtml(__('Block Remote Content')) ?></a>
+                    <?php else: ?>
+                        <span><?= $escaper->escapeHtml(__('Remote images and styles are blocked, so opening this email does not reveal your IP address to other servers.')) ?></span>
+                        <a class="action-default" href="<?= $escaper->escapeUrl($block->getRemoteContentUrl(true)) ?>"><?= $escaper->escapeHtml(__('Load Remote Content')) ?></a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             <?php if ($block->getPreviewDocument() !== ''): ?>
                 <iframe class="commercegears-smtp-preview" sandbox="" referrerpolicy="no-referrer" loading="lazy"
                         title="<?= $escaper->escapeHtmlAttr(__('Email preview')) ?>"

@@ -177,13 +177,16 @@ anyone remembers to change a setting.
 Above the grid you see the counts of the last 24 hours. Search by subject, sender or recipient, and filter by
 status, email type (for example "New Order" or "Reset Password"), store view and dates. **View** opens the email:
 details, a safe preview of the HTML (scripts and forms are blocked), the text version, the headers, the attachment
-list and, for failures, the SMTP conversation.
+list and, for failures, the SMTP conversation. Remote images and styles are blocked in the preview, so opening an
+email does not reveal your IP address to tracking pixels; click **Load Remote Content** to show them for that email
+only. The content (preview, text, headers, attachments) needs the **View Email Content** permission.
 
 ![One email with its preview](images/admin-email-view.png)
 
 **Send Again** sends the email now with a new Message-ID (mailboxes drop messages whose ID they have seen); **Send**
 to another address helps when a customer gave a wrong address. In the grid, the **Send Again** mass action queues the
-selected emails for cron; **Delete** removes entries.
+selected emails for cron; **Delete** removes entries. Sending again is refused, with the reason, while the module is
+switched off for the email's store view or when that store view was deleted.
 
 Log settings (Default Config only): **Log Emails**, **Keep Email Content** (needed for preview and resend; emails can
 contain personal data and links such as password resets, so keep the retention short), **Keep Log Entries For
@@ -228,8 +231,9 @@ bin/magento commercegears:smtp:dns [domain] [--selector=s1] [--store=1]
 
 | Resource | Allows |
 | --- | --- |
-| CommerceGears > SMTP > View Email Log | the log grid and email pages |
-| Resend and Delete Emails | Send Again, send to another address, mass actions |
+| CommerceGears > SMTP > View Email Log | the log grid and email pages (status, recipients, subject, errors) |
+| View Email Content | the preview, text, headers and attachments of an email (personal data, password reset links) |
+| Resend and Delete Emails | Delete; together with View Email Content also Send Again and send to another address |
 | Settings, Test and Diagnostics | the settings page, test buttons, Connect and Disconnect |
 
 ## 13. Troubleshooting
