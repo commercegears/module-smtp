@@ -54,15 +54,15 @@ class Mailer
 
         if (!$prepared->send) {
             if ($logEnabled) {
-                $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_SKIPPED);
-                $this->storeContentIfKept($log, $email);
+                $this->safely('the email could not be logged', function () use ($email, $prepared, $storeId): void {
+                    $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_SKIPPED);
+                    $this->storeContentIfKept($log, $email);
+                });
             }
             return;
         }
 
-        if ($this->config->getSendingMode($scope) === Config::SENDING_QUEUE) {
-            $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_PENDING);
-            $this->logResource->saveContent((int)$log->getId(), $email->getEnvelope(), $email->raw);
+        if ($this->config->getSendingMode($scope) === Config::SENDING_QUEUE && $this->enqueue($email, $prepared, $storeId)) {
             return;
         }
 
@@ -73,9 +73,12 @@ class Mailer
             return;
         }
         if ($logEnabled) {
-            $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_SENT, 1);
-            $this->markSent($log, $result);
-            $this->storeContentIfKept($log, $email);
+            // The email is out: a logging problem must never make Magento think it failed (or send it twice).
+            $this->safely('the sent email could not be logged', function () use ($email, $prepared, $storeId, $result): void {
+                $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_SENT, 1);
+                $this->markSent($log, $result);
+                $this->storeContentIfKept($log, $email);
+            });
         }
     }
 
@@ -99,14 +102,11 @@ class Mailer
         $this->logResource->saveContent((int)$log->getId(), $email->getEnvelope(), $email->raw);
         try {
             $result = $this->sender->send($scope, $prepared->envelopeFrom, $prepared->getRecipients(), $prepared->data);
-            $this->markSent($log, $result);
-            if (!$this->config->isKeepContent()) {
-                $this->logResource->deleteContent((int)$log->getId());
-            }
-        } catch (SmtpException $e) {
-            $settings = $this->safeSettings($scope);
-            $this->markFailed($log, $e, Log::STATUS_FAILED, $settings);
+        } catch (\Throwable $e) {
+            $this->markFailed($log, self::toSmtpException($e), Log::STATUS_FAILED, $this->safeSettings($scope));
+            return $log;
         }
+        $this->markSentSafely($log, $result, !$this->config->isKeepContent() ? fn () => $this->logResource->deleteContent((int)$log->getId()) : null);
         return $log;
     }
 
@@ -150,7 +150,11 @@ class Mailer
             if (!$this->logResource->claim($logId)) {
                 continue;
             }
-            $status = $this->processOne($logId);
+            try {
+                $status = $this->processOne($logId);
+            } catch (\Throwable $e) {
+                $status = $this->markBroken($logId, $e);
+            }
             if (isset($stats[$status])) {
                 $stats[$status]++;
             }
@@ -189,19 +193,73 @@ class Mailer
         $log->setData('attempts', $attempts);
         try {
             $result = $this->sender->send($scope, $prepared->envelopeFrom, $prepared->getRecipients(), $prepared->data);
-        } catch (SmtpException $e) {
+        } catch (\Throwable $e) {
+            $error = self::toSmtpException($e);
             $settings = $this->safeSettings($scope);
             if ($attempts < $this->config->getMaxAttempts()) {
-                $this->markFailed($log, $e, Log::STATUS_RETRY, $settings, $attempts);
+                $this->markFailed($log, $error, Log::STATUS_RETRY, $settings, $attempts);
                 return 'retry';
             }
-            $this->markFailed($log, $e, Log::STATUS_FAILED, $settings);
+            $this->markFailed($log, $error, Log::STATUS_FAILED, $settings);
             $this->cleanupAfterFinal($log);
             return 'failed';
         }
-        $this->markSent($log, $result);
-        $this->cleanupAfterFinal($log);
+        $this->markSentSafely($log, $result, fn () => $this->cleanupAfterFinal($log));
         return 'sent';
+    }
+
+    /**
+     * After a successful send: the row must never be picked up by the queue again (that would send it twice), even
+     * if the full update fails.
+     *
+     * @param array{reply: string, server: string, rejected?: array<string, string>} $result
+     */
+    private function markSentSafely(Log $log, array $result, ?callable $then = null): void
+    {
+        try {
+            $this->markSent($log, $result);
+            if ($then !== null) {
+                $then();
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('CommerceGears SMTP: the sent email could not be logged: ' . $e->getMessage());
+            $this->safely('the sent email could not be marked as sent', fn () => $this->logResource->getConnection()->update(
+                $this->logResource->getMainTable(),
+                ['status' => Log::STATUS_SENT, 'next_attempt_at' => null],
+                ['log_id = ?' => (int)$log->getId()]
+            ));
+        }
+    }
+
+    /**
+     * A queued email whose processing failed with an unexpected error (not an SMTP error): retried with the usual
+     * back-off, then marked failed, instead of being left in "sending" for ever.
+     */
+    private function markBroken(int $logId, \Throwable $e): string
+    {
+        $this->logger->error('CommerceGears SMTP: queued email ' . $logId . ' could not be processed: ' . $e->getMessage());
+        try {
+            $connection = $this->logResource->getConnection();
+            $attempts = (int)$connection->fetchOne(
+                $connection->select()->from($this->logResource->getMainTable(), ['attempts'])->where('log_id = ?', $logId)
+            ) + 1;
+            $retry = $attempts < $this->config->getMaxAttempts();
+            $minutes = self::BACKOFF_MINUTES[min($attempts - 1, count(self::BACKOFF_MINUTES) - 1)];
+            $connection->update(
+                $this->logResource->getMainTable(),
+                [
+                    'status' => $retry ? Log::STATUS_RETRY : Log::STATUS_FAILED,
+                    'attempts' => $attempts,
+                    'next_attempt_at' => $retry ? $this->dateTime->gmtDate('Y-m-d H:i:s', time() + $minutes * 60) : null,
+                    'error_message' => (string)__('The email could not be processed: %1', mb_substr($e->getMessage(), 0, 500)),
+                ],
+                ['log_id = ?' => $logId]
+            );
+            return $retry ? 'retry' : 'failed';
+        } catch (\Throwable $inner) {
+            $this->logger->error('CommerceGears SMTP: queued email ' . $logId . ' could not be updated: ' . $inner->getMessage());
+            return 'failed';
+        }
     }
 
     /**
@@ -220,15 +278,25 @@ class Mailer
         $this->logger->warning('CommerceGears SMTP: email could not be sent: ' . $e->getMessage());
 
         if ($this->config->getMaxAttempts() > 1) {
-            $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_RETRY, 1);
-            $this->logResource->saveContent((int)$log->getId(), $email->getEnvelope(), $email->raw);
-            $this->markFailed($log, $e, Log::STATUS_RETRY, $settings, 1);
-            return;
-        }
-        if ($logEnabled) {
-            $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_FAILED, 1);
-            $this->markFailed($log, $e, Log::STATUS_FAILED, $settings);
-            $this->storeContentIfKept($log, $email);
+            $log = null;
+            try {
+                $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_RETRY, 1);
+                $this->logResource->saveContent((int)$log->getId(), $email->getEnvelope(), $email->raw);
+                $this->markFailed($log, $e, Log::STATUS_RETRY, $settings, 1);
+                return;
+            } catch (\Throwable $saveError) {
+                // Cannot be kept for a retry: tell Magento it failed instead of losing it silently.
+                $this->logger->error('CommerceGears SMTP: the email could not be queued for a retry: ' . $saveError->getMessage());
+                if ($log !== null && $log->getId()) {
+                    $this->safely('the log entry could not be removed', fn () => $this->logResource->deleteByIds([(int)$log->getId()]));
+                }
+            }
+        } elseif ($logEnabled) {
+            $this->safely('the failed email could not be logged', function () use ($email, $prepared, $storeId, $e, $settings): void {
+                $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_FAILED, 1);
+                $this->markFailed($log, $e, Log::STATUS_FAILED, $settings);
+                $this->storeContentIfKept($log, $email);
+            });
         }
         throw new MailException(__('The email could not be sent: %1', $summary), $e);
     }
@@ -271,10 +339,38 @@ class Mailer
     }
 
     /**
-     * @param array{reply: string, server: string} $result
+     * Puts an email in the queue for cron. False when it cannot be stored, so it is sent right away instead.
+     */
+    private function enqueue(OutgoingEmail $email, PreparedEmail $prepared, ?int $storeId): bool
+    {
+        $log = null;
+        try {
+            $log = $this->createLog($email, $prepared, $storeId, Log::STATUS_PENDING);
+            $this->logResource->saveContent((int)$log->getId(), $email->getEnvelope(), $email->raw);
+            return true;
+        } catch (\Throwable $e) {
+            $this->logger->error('CommerceGears SMTP: the email could not be queued and is sent now: ' . $e->getMessage());
+            if ($log !== null && $log->getId()) {
+                $this->safely('the log entry could not be removed', fn () => $this->logResource->deleteByIds([(int)$log->getId()]));
+            }
+            return false;
+        }
+    }
+
+    /**
+     * @param array{reply: string, server: string, rejected?: array<string, string>} $result
      */
     private function markSent(Log $log, array $result): void
     {
+        $rejected = $result['rejected'] ?? [];
+        if ($rejected !== []) {
+            $parts = [];
+            foreach ($rejected as $address => $reply) {
+                $parts[] = $address . ($reply !== '' ? ' (' . $reply . ')' : '');
+            }
+            $note = trim((string)$log->getData('note') . ' ' . (string)__('Refused by the server and left out: %1.', implode(', ', $parts)));
+            $log->setData('note', mb_substr($note, 0, 60000));
+        }
         $log->addData([
             'status' => Log::STATUS_SENT,
             'sent_at' => $this->dateTime->gmtDate(),
@@ -351,6 +447,23 @@ class Mailer
             throw new LocalizedException(__('The content of this email was not kept, so it cannot be sent again.'));
         }
         return [$original, OutgoingEmail::fromStored($content['raw'], $content['envelope'])];
+    }
+
+    /**
+     * Runs a bookkeeping step whose failure must not change what happens to the email.
+     */
+    private function safely(string $what, callable $step): void
+    {
+        try {
+            $step();
+        } catch (\Throwable $e) {
+            $this->logger->error('CommerceGears SMTP: ' . $what . ': ' . $e->getMessage());
+        }
+    }
+
+    private static function toSmtpException(\Throwable $e): SmtpException
+    {
+        return $e instanceof SmtpException ? $e : new SmtpException($e->getMessage(), SmtpException::STAGE_MESSAGE, 0, '', $e);
     }
 
     private function safeSettings(Scope $scope): ?ConnectionSettings

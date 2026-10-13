@@ -216,6 +216,19 @@ class Config
         return array_values(array_unique($hosts));
     }
 
+    /**
+     * True when no delivery rule of the scope holds emails back (live delivery, no blocklist, no active staging
+     * lock). Only then may Magento's own transport send an email the module could not handle.
+     */
+    public function canBypassDeliveryRules(?Scope $scope = null): bool
+    {
+        if ($this->getDeliveryMode($scope) !== self::DELIVERY_LIVE || $this->getBlockedRecipients($scope) !== []) {
+            return false;
+        }
+        $liveHosts = $this->getLiveHosts($scope);
+        return $liveHosts === [] || in_array($this->getStoreHost($scope), $liveHosts, true);
+    }
+
     public function getSendingMode(?Scope $scope = null): string
     {
         return $this->getValue('queue/sending', $scope) === self::SENDING_QUEUE ? self::SENDING_QUEUE : self::SENDING_IMMEDIATE;
@@ -244,6 +257,20 @@ class Config
     public function getRetentionDays(): int
     {
         return $this->getInt('log/retention_days', 0, 3650, 30);
+    }
+
+    /**
+     * Days the content of sent emails is kept: the own setting, else the log retention (0 = no limit).
+     */
+    public function getContentRetentionDays(): int
+    {
+        $value = $this->getValue('log/content_retention_days');
+        if ($value === '' || !ctype_digit($value) || (int)$value < 1) {
+            return $this->getRetentionDays();
+        }
+        $days = min(3650, (int)$value);
+        $logDays = $this->getRetentionDays();
+        return $logDays > 0 ? min($days, $logDays) : $days;
     }
 
     /**

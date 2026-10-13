@@ -82,9 +82,10 @@ class Preparer
         $liveHosts = $this->config->getLiveHosts($scope);
         if ($liveHosts !== []) {
             $storeHost = $this->config->getStoreHost($scope);
-            if ($storeHost !== '' && !in_array($storeHost, $liveHosts, true) && $mode === Config::DELIVERY_LIVE) {
+            // Fails closed: a store whose address cannot be read is treated as a copy, not as the live store.
+            if (!in_array($storeHost, $liveHosts, true) && $mode === Config::DELIVERY_LIVE) {
                 $mode = $testRecipients !== [] ? Config::DELIVERY_REDIRECT : Config::DELIVERY_LOG_ONLY;
-                $notes[] = (string)__('Staging safety lock: %1 is not the live domain.', $storeHost);
+                $notes[] = (string)__('Staging safety lock: %1 is not the live domain.', $storeHost !== '' ? $storeHost : (string)__('the store address'));
             }
         }
 

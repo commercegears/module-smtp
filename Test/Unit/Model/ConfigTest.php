@@ -130,4 +130,24 @@ class ConfigTest extends TestCase
         $this->assertSame('', $this->config(['system/smtp/set_return_path' => '1', 'system/smtp/return_path_email' => 'b@example.com'])->getReturnPathEmail());
         $this->assertSame('b@example.com', $this->config(['system/smtp/set_return_path' => '2', 'system/smtp/return_path_email' => 'b@example.com'])->getReturnPathEmail());
     }
+
+    public function testContentRetention(): void
+    {
+        $this->assertSame(30, $this->config(['log/retention_days' => '30'])->getContentRetentionDays());
+        $this->assertSame(7, $this->config(['log/retention_days' => '30', 'log/content_retention_days' => '7'])->getContentRetentionDays());
+        $this->assertSame(30, $this->config(['log/retention_days' => '30', 'log/content_retention_days' => '90'])->getContentRetentionDays(), 'Never longer than the log entry');
+        $this->assertSame(14, $this->config(['log/retention_days' => '0', 'log/content_retention_days' => '14'])->getContentRetentionDays());
+        $this->assertSame(0, $this->config(['log/retention_days' => '0'])->getContentRetentionDays());
+    }
+
+    public function testBypassOnlyWithoutDeliveryRules(): void
+    {
+        $live = ['web/unsecure/base_url' => 'https://www.example.com/'];
+        $this->assertTrue($this->config($live)->canBypassDeliveryRules());
+        $this->assertFalse($this->config($live + ['delivery/mode' => 'redirect'])->canBypassDeliveryRules());
+        $this->assertFalse($this->config($live + ['delivery/mode' => 'log_only'])->canBypassDeliveryRules());
+        $this->assertFalse($this->config($live + ['delivery/blocked_recipients' => '@example.org'])->canBypassDeliveryRules());
+        $this->assertTrue($this->config($live + ['delivery/live_host' => 'www.example.com'])->canBypassDeliveryRules());
+        $this->assertFalse($this->config(['web/unsecure/base_url' => 'https://staging.example.com/', 'delivery/live_host' => 'www.example.com'])->canBypassDeliveryRules());
+    }
 }

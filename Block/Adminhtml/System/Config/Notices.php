@@ -50,8 +50,8 @@ class Notices extends FullWidthField
         }
         $liveHosts = $this->config->getLiveHosts($scope);
         $storeHost = $this->config->getStoreHost($scope);
-        if ($liveHosts !== [] && $storeHost !== '' && !in_array($storeHost, $liveHosts, true)) {
-            $notices[] = ['warning', $this->escapeHtml(__('Staging safety lock is active: %1 is not the live domain (%2), so emails go to the test addresses or are only logged.', $storeHost, implode(', ', $liveHosts)))];
+        if ($liveHosts !== [] && !in_array($storeHost, $liveHosts, true)) {
+            $notices[] = ['warning', $this->escapeHtml(__('Staging safety lock is active: %1 is not the live domain (%2), so emails go to the test addresses or are only logged.', $storeHost !== '' ? $storeHost : __('the store address'), implode(', ', $liveHosts)))];
         }
         if ($this->config->getPreset($scope)->isOAuth()) {
             $row = $this->tokenStorage->findForScope($scope);

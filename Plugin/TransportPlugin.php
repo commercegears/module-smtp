@@ -13,6 +13,7 @@ use CommerceGears\Smtp\Model\Mailer;
 use CommerceGears\Smtp\Model\Message\MessageExtractor;
 use CommerceGears\Smtp\Model\Scope;
 use CommerceGears\Smtp\Model\TemplateContext;
+use Magento\Framework\Exception\MailException;
 use Magento\Framework\Mail\TransportInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -44,7 +45,7 @@ class TransportPlugin
         if ($storeId === null) {
             try {
                 $storeId = (int)$this->storeManager->getStore()->getId();
-            } catch (\Exception) {
+            } catch (\Throwable) {
                 $storeId = 0;
             }
         }
@@ -56,11 +57,46 @@ class TransportPlugin
         try {
             $email = $this->extractor->extract($subject->getMessage(), $context['template'], $this->config->getHeloName($scope));
         } catch (\Throwable $e) {
-            $this->logger->error('CommerceGears SMTP: the email could not be read, Magento\'s own transport is used: ' . $e->getMessage());
-            return $proceed();
+            return $this->fallBack($proceed, $scope, 'the email could not be read', $e);
         }
 
-        $this->mailer->handle($email, $scope, $storeId > 0 ? $storeId : null);
+        try {
+            $this->mailer->handle($email, $scope, $storeId > 0 ? $storeId : null);
+        } catch (MailException $e) {
+            // A readable delivery error from the module (no retries left): Magento shows or logs it.
+            throw $e;
+        } catch (\Throwable $e) {
+            return $this->fallBack($proceed, $scope, 'unexpected error', $e);
+        }
         return null;
+    }
+
+    /**
+     * An unexpected problem in the module (unreadable message, database, code) must never lose the email silently:
+     * Magento's own transport sends it, unless delivery rules (test addresses, log only, staging lock, blocklist)
+     * apply, because Magento's transport would ignore them. Then the email is not sent and Magento gets the error.
+     *
+     * @return mixed
+     * @throws MailException
+     */
+    private function fallBack(callable $proceed, Scope $scope, string $what, \Throwable $e)
+    {
+        try {
+            $bypassAllowed = $this->config->canBypassDeliveryRules($scope);
+        } catch (\Throwable) {
+            $bypassAllowed = false;
+        }
+        if (!$bypassAllowed) {
+            $this->logger->critical(
+                'CommerceGears SMTP: ' . $what . '; not sent because delivery rules apply: ' . $e->getMessage(),
+                ['exception' => $e]
+            );
+            throw new MailException(__('The email could not be sent: %1', $e->getMessage()), $e);
+        }
+        $this->logger->critical(
+            'CommerceGears SMTP: ' . $what . ', Magento\'s own transport sends the email instead: ' . $e->getMessage(),
+            ['exception' => $e]
+        );
+        return $proceed();
     }
 }

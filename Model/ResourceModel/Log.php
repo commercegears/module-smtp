@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace CommerceGears\Smtp\Model\ResourceModel;
 
 use CommerceGears\Smtp\Model\Log as LogModel;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\Model\ResourceModel\Db\Context;
@@ -20,6 +21,8 @@ class Log extends AbstractDb
 {
     public const TABLE = 'commercegears_smtp_log';
     public const CONTENT_TABLE = 'commercegears_smtp_log_content';
+    /** Just under the 16 MB of a MEDIUMBLOB column. */
+    private const MAX_CONTENT_BYTES = 16000000;
 
     public function __construct(
         Context $context,
@@ -36,16 +39,23 @@ class Log extends AbstractDb
 
     /**
      * @param array<string, mixed> $envelope
+     * @throws LocalizedException when the message is too large to be stored
      */
     public function saveContent(int $logId, array $envelope, string $raw): void
     {
         $compressed = gzcompress($raw, 6);
+        $stored = $compressed === false ? $raw : $compressed;
+        if (strlen($stored) > self::MAX_CONTENT_BYTES) {
+            // The column would cut it off silently (Magento runs MySQL without strict mode): never store a
+            // broken message that a retry or resend would then send.
+            throw new LocalizedException(__('The email is too large to be kept in the log.'));
+        }
         $this->getConnection()->insertOnDuplicate(
             $this->getTable(self::CONTENT_TABLE),
             [
                 'log_id' => $logId,
                 'envelope' => $this->json->serialize($envelope),
-                'raw_message' => $compressed === false ? $raw : $compressed,
+                'raw_message' => $stored,
             ],
             ['envelope', 'raw_message']
         );
@@ -65,6 +75,10 @@ class Log extends AbstractDb
         }
         $raw = (string)$row['raw_message'];
         $inflated = @gzuncompress($raw);
+        if ($inflated === false && str_starts_with($raw, "\x78")) {
+            // Compressed but damaged: treat as not kept rather than send garbage.
+            return null;
+        }
         try {
             $envelope = $this->json->unserialize((string)$row['envelope']);
         } catch (\InvalidArgumentException) {
@@ -152,6 +166,33 @@ class Log extends AbstractDb
                 break;
             }
             $deleted += (int)$connection->delete($this->getMainTable(), ['log_id IN (?)' => array_map('intval', $ids)]);
+        } while (count($ids) === $batch);
+        return $deleted;
+    }
+
+    /**
+     * Deletes the stored content of emails that are finished (not waiting to be sent), in batches; with a date,
+     * only of emails created before it. Their log rows stay.
+     */
+    public function deleteFinishedContent(?string $before = null, int $batch = 1000): int
+    {
+        $connection = $this->getConnection();
+        $contentTable = $this->getTable(self::CONTENT_TABLE);
+        $deleted = 0;
+        do {
+            $select = $connection->select()
+                ->from(['c' => $contentTable], ['log_id'])
+                ->join(['l' => $this->getMainTable()], 'l.log_id = c.log_id', [])
+                ->where('l.status NOT IN (?)', [LogModel::STATUS_PENDING, LogModel::STATUS_RETRY, LogModel::STATUS_SENDING])
+                ->limit($batch);
+            if ($before !== null) {
+                $select->where('l.created_at < ?', $before);
+            }
+            $ids = array_map('intval', $connection->fetchCol($select));
+            if ($ids === []) {
+                break;
+            }
+            $deleted += (int)$connection->delete($contentTable, ['log_id IN (?)' => $ids]);
         } while (count($ids) === $batch);
         return $deleted;
     }

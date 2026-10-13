@@ -188,4 +188,15 @@ class PreparerTest extends TestCase
             ['a@other.com', '*@test.*', false],
         ];
     }
+
+    public function testStagingLockFailsClosedWhenTheStoreAddressIsUnknown(): void
+    {
+        $this->config = $this->createStub(Config::class);
+        $this->config->method('getHeloName')->willReturn('shop.example.com');
+        $this->config->method('getStoreHost')->willReturn('');
+        $this->configure(['getLiveHosts' => ['www.example.com']]);
+        $prepared = $this->preparer()->prepare($this->email(), Scope::store(1));
+        $this->assertFalse($prepared->send);
+        $this->assertStringContainsString('Staging safety lock', $prepared->getNote());
+    }
 }
