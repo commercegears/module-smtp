@@ -113,5 +113,15 @@
             "package": "commercegears/module-admin-activity-log",
             "text": "Records who changed the SMTP settings and when."
         }
-    ]
+    ],
+    "demo": {
+        "storefront": [],
+        "admin": [
+            {
+                "label": "Admin panel",
+                "url": "https://demo.commercegears.com/try-admin/smtp",
+                "image": "docs/images/admin-email-log.png"
+            }
+        ]
+    }
 }

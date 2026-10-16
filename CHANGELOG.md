@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.1 (2026-10-16)
+- Improvement: live demo links on the product page (admin demo).
+
 ## 1.0.0 (2026-10-13)
 
 - New: first release with SMTP presets, Google and Microsoft 365 OAuth 2.0, per store view settings and test email
